@@ -47,19 +47,24 @@ export async function executeScheduledScan(label = 'PROGRAMMATO'): Promise<{
     // 2. Run Fast Market Triage on Watchlist
     const triageResults = await runFastWatchlistTriage();
 
-    // 3. Select Top 3-5 candidates for Deep Analysis
-    const topCandidates = triageResults.slice(0, 5);
+    // 3. Select Top 3 candidates for Deep Analysis and run them in parallel for speed
+    const topCandidates = triageResults.slice(0, 3);
     const deepAnalyses: any[] = [];
 
-    for (const c of topCandidates) {
-      try {
-        console.log(`[SCHEDULER] Analisi approfondita per: ${c.ticker}`);
-        // skipAutoTelegram = true avoids sending isolated cards during the scheduled scan
-        const deep = await runDeepHedgeFundAnalysis(c.ticker, { skipAutoTelegram: true });
-        deepAnalyses.push(deep);
-      } catch (err: any) {
-        console.warn(`[SCHEDULER] Errore analisi su ${c.ticker}:`, err?.message);
-      }
+    const analysesResults = await Promise.all(
+      topCandidates.map(async (c) => {
+        try {
+          console.log(`[SCHEDULER] Analisi approfondita per: ${c.ticker}`);
+          return await runDeepHedgeFundAnalysis(c.ticker, { skipAutoTelegram: true });
+        } catch (err: any) {
+          console.warn(`[SCHEDULER] Errore analisi su ${c.ticker}:`, err?.message);
+          return null;
+        }
+      })
+    );
+
+    for (const res of analysesResults) {
+      if (res) deepAnalyses.push(res);
     }
 
     // 4. Check owned portfolio stocks

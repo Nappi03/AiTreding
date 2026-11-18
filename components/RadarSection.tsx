@@ -126,7 +126,7 @@ export function RadarSection({
               Nessuna scheda operativa attiva in questo momento
             </h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto">
-              Avvia una <b>Scansione Completa</b> o clicca su qualsiasi titolo nella <b>Watchlist</b> per generare la prima scheda di Deep Analysis istituzionale con Gemini 2.5 Pro.
+              Avvia un <b>Controllo Completo</b> o clicca su qualsiasi titolo nella sezione <b>Titoli Osservati</b> per generare la scheda con i numeri esatti da copiare su Revolut.
             </p>
             <div className="pt-2">
               <button
@@ -134,7 +134,7 @@ export function RadarSection({
                 disabled={isScanning}
                 className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs uppercase font-mono shadow-lg shadow-amber-500/20"
               >
-                Avvia Scansione Ora
+                {isScanning ? 'Controllo in corso...' : 'Avvia Scansione Ora'}
               </button>
             </div>
           </div>
