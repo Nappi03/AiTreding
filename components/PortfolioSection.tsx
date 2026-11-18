@@ -251,28 +251,28 @@ export function PortfolioSection({
                   </div>
 
                   {/* Middle: Stop Loss & TP Status */}
-                  <div className="flex items-center gap-4 text-xs font-mono">
-                    <div>
-                      <span className="text-[10px] text-rose-400 block font-semibold">Stop Loss</span>
-                      <span className="text-slate-200 font-semibold">
+                  <div className="flex items-center gap-5 text-xs font-mono">
+                    <div className="bg-rose-950/20 border border-rose-500/20 px-2.5 py-1.5 rounded-lg">
+                      <span className="text-xs text-rose-300 block font-bold">Stop Loss</span>
+                      <span className="text-white font-bold text-sm block">
                         {pos.stopLossPriceUSD ? `$${pos.stopLossPriceUSD}` : 'Non imp.'}
                       </span>
-                      <span className="text-[9px] text-slate-500 block">Prezzo sicurezza</span>
+                      <span className="text-[11px] text-rose-300/80 block">Prezzo sicurezza</span>
                       {pos.stopLossDistancePercent !== null && pos.stopLossDistancePercent !== undefined && (
-                        <span className="text-[10px] text-slate-400 block">
+                        <span className="text-[11px] text-slate-300 block font-semibold">
                           ({pos.stopLossDistancePercent > 0 ? '+' : ''}{pos.stopLossDistancePercent}%)
                         </span>
                       )}
                     </div>
 
-                    <div>
-                      <span className="text-[10px] text-emerald-400 block font-semibold">Take Profit</span>
-                      <span className="text-slate-200 font-semibold">
+                    <div className="bg-emerald-950/20 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg">
+                      <span className="text-xs text-emerald-300 block font-bold">Take Profit</span>
+                      <span className="text-white font-bold text-sm block">
                         {pos.takeProfitPriceUSD ? `$${pos.takeProfitPriceUSD}` : 'Non imp.'}
                       </span>
-                      <span className="text-[9px] text-slate-500 block">Obiettivo guadagno</span>
+                      <span className="text-[11px] text-emerald-300/80 block">Obiettivo guadagno</span>
                       {pos.takeProfitDistancePercent !== null && pos.takeProfitDistancePercent !== undefined && (
-                        <span className="text-[10px] text-slate-400 block">
+                        <span className="text-[11px] text-slate-300 block font-semibold">
                           ({pos.takeProfitDistancePercent > 0 ? '+' : ''}{pos.takeProfitDistancePercent}%)
                         </span>
                       )}

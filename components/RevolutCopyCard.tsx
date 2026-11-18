@@ -53,6 +53,7 @@ export function RevolutCopyCard({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isSendingTelegram, setIsSendingTelegram] = useState(false);
   const [telegramStatus, setTelegramStatus] = useState<string | null>(null);
+  const [isThesisExpanded, setIsThesisExpanded] = useState(false);
 
   const copyToClipboard = async (text: string | number, fieldName: string) => {
     try {
@@ -140,125 +141,150 @@ export function RevolutCopyCard({
           </div>
 
           {/* Conviction / Affidabilità Score Pill */}
-          <div className="text-right">
-            <div className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">Affidabilità Consiglio</div>
+          <div className="text-right shrink-0">
+            <div className="text-[11px] text-slate-300 font-bold uppercase tracking-wider font-mono">Affidabilità</div>
             <div
-              className={`num-mono font-black text-lg ${
+              className={`num-mono font-black text-xl ${
                 convictionScore >= 80
                   ? 'text-emerald-400'
                   : convictionScore >= 65
                   ? 'text-amber-400'
-                  : 'text-slate-400'
+                  : 'text-slate-300'
               }`}
             >
-              {convictionScore}<span className="text-xs text-slate-500">/100</span>
+              {convictionScore}<span className="text-xs text-slate-400">/100</span>
             </div>
           </div>
         </div>
 
-        {/* Thesis Flash */}
-        <p className="text-xs text-slate-300 leading-relaxed line-clamp-2 mb-4 bg-slate-900/50 p-2.5 rounded-lg border border-slate-800/80">
-          {thesisSummary}
-        </p>
+        {/* Spiegazione Chiara AI (con opzione espandi) */}
+        <div className="mb-4 bg-[#11192b] p-3.5 rounded-xl border border-[#223552]">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-mono mb-1 flex items-center justify-between">
+            <span>💡 Parere dell'AI in parole semplici:</span>
+            {thesisSummary.length > 180 && (
+              <button
+                type="button"
+                onClick={() => setIsThesisExpanded(!isThesisExpanded)}
+                className="text-[11px] text-amber-300 hover:underline capitalize"
+              >
+                {isThesisExpanded ? 'Mostra meno' : 'Leggi tutto'}
+              </button>
+            )}
+          </div>
+          <p className={`text-xs sm:text-[13px] text-slate-200 leading-relaxed font-sans ${isThesisExpanded ? '' : 'line-clamp-3'}`}>
+            {thesisSummary}
+          </p>
+        </div>
 
         {/* 3 Click-to-Copy Quick Action Buttons for Revolut */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
           
           {/* 1. Copia Prezzo Ingresso */}
           <button
             onClick={() => copyToClipboard(plan.idealEntryPriceUSD, 'price')}
-            className="flex items-center justify-between p-2.5 rounded-lg bg-[#141d30] hover:bg-[#1a263f] border border-[#253552] text-left transition-colors group/btn"
+            className="flex items-center justify-between p-3 rounded-xl bg-[#141d30] hover:bg-[#1a263f] border border-[#2b3d5c] text-left transition-colors group/btn shadow-sm"
             title="Prezzo a cui impostare l'acquisto su Revolut"
           >
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Prezzo a cui Comprare</div>
-              <div className="num-mono font-bold text-sm text-cyan-300">
-                ${plan.idealEntryPriceUSD}
+              <div className="text-xs font-bold text-slate-300 font-sans">Prezzo Limite</div>
+              <div className="num-mono font-black text-base text-cyan-300 mt-0.5">
+                ${typeof plan.idealEntryPriceUSD === 'number' ? plan.idealEntryPriceUSD.toFixed(2) : plan.idealEntryPriceUSD}
               </div>
-              <div className="text-[9px] text-slate-500 font-mono mt-0.5">Tocca per copiare</div>
+              <div className="text-[11px] text-slate-400 font-sans mt-0.5">Tocca per copiare</div>
             </div>
-            <div className="p-1 rounded bg-slate-800/80 text-slate-400 group-hover/btn:text-cyan-300">
-              {copiedField === 'price' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <div className="p-1.5 rounded-lg bg-slate-800 text-slate-300 group-hover/btn:text-cyan-300">
+              {copiedField === 'price' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </div>
           </button>
 
           {/* 2. Copia Azioni Frazionate */}
           <button
             onClick={() => copyToClipboard(plan.fractionalSharesToBuy, 'shares')}
-            className="flex items-center justify-between p-2.5 rounded-lg bg-[#141d30] hover:bg-[#1a263f] border border-[#253552] text-left transition-colors group/btn"
+            className="flex items-center justify-between p-3 rounded-xl bg-[#141d30] hover:bg-[#1a263f] border border-[#2b3d5c] text-left transition-colors group/btn shadow-sm"
             title="Numero esatto di quote da inserire su Revolut"
           >
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Azioni da Comprare</div>
-              <div className="num-mono font-bold text-sm text-amber-300">
+              <div className="text-xs font-bold text-slate-300 font-sans">Azioni da Comprare</div>
+              <div className="num-mono font-black text-base text-amber-300 mt-0.5">
                 {plan.fractionalSharesToBuy}
               </div>
-              <div className="text-[9px] text-slate-500 font-mono mt-0.5">Quote da digitare</div>
+              <div className="text-[11px] text-slate-400 font-sans mt-0.5">Quote da digitare</div>
             </div>
-            <div className="p-1 rounded bg-slate-800/80 text-slate-400 group-hover/btn:text-amber-300">
-              {copiedField === 'shares' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <div className="p-1.5 rounded-lg bg-slate-800 text-slate-300 group-hover/btn:text-amber-300">
+              {copiedField === 'shares' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </div>
           </button>
 
           {/* 3. Copia Euro da Investire */}
           <button
             onClick={() => copyToClipboard(plan.recommendedInvestmentEUR, 'eur')}
-            className="flex items-center justify-between p-2.5 rounded-lg bg-[#141d30] hover:bg-[#1a263f] border border-[#253552] text-left transition-colors group/btn"
+            className="flex items-center justify-between p-3 rounded-xl bg-[#141d30] hover:bg-[#1a263f] border border-[#2b3d5c] text-left transition-colors group/btn shadow-sm"
             title="Importo totale in Euro calcolato per non rischiare troppo"
           >
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Soldi da Investire</div>
-              <div className="num-mono font-bold text-sm text-emerald-300">
+              <div className="text-xs font-bold text-slate-300 font-sans">Soldi da Investire</div>
+              <div className="num-mono font-black text-base text-emerald-300 mt-0.5">
                 €{plan.recommendedInvestmentEUR}
               </div>
-              <div className="text-[9px] text-slate-500 font-mono mt-0.5">Totale calcolato</div>
+              <div className="text-[11px] text-slate-400 font-sans mt-0.5">Totale calcolato</div>
             </div>
-            <div className="p-1 rounded bg-slate-800/80 text-slate-400 group-hover/btn:text-emerald-300">
-              {copiedField === 'eur' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <div className="p-1.5 rounded-lg bg-slate-800 text-slate-300 group-hover/btn:text-emerald-300">
+              {copiedField === 'eur' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </div>
           </button>
 
         </div>
 
-        {/* Key Operational Targets Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs py-2 px-3 rounded-lg bg-[#0a0f1a] border border-[#1b2538] mb-3">
-          <div>
-            <span className="text-[10px] text-slate-400 block font-mono">Prezzo Pareggio (BE):</span>
-            <span className="num-mono font-semibold text-slate-200">${plan.breakEvenPriceUSD}</span>
-            <span className="text-[9px] text-slate-500 block">Per coprire commissioni</span>
+        {/* Key Operational Targets 2x2 Grid (Spacious & Clean) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3.5 rounded-xl bg-[#090e18] border border-[#1d293d] mb-3.5">
+          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
+            <span className="text-xs font-bold text-slate-300 block font-sans">Prezzo di Pareggio (BE):</span>
+            <span className="num-mono font-bold text-sm text-slate-100 mt-0.5 block">
+              ${typeof plan.breakEvenPriceUSD === 'number' ? plan.breakEvenPriceUSD.toFixed(2) : plan.breakEvenPriceUSD}
+            </span>
+            <span className="text-[11px] text-slate-400 block font-sans">Minimo per non perdere in commissioni</span>
           </div>
-          <div>
-            <span className="text-[10px] text-rose-400 block font-mono">Stop Loss (Sicurezza):</span>
-            <span className="num-mono font-semibold text-rose-300">${plan.stopLossPriceUSD}</span>
-            <span className="text-[9px] text-rose-400/80 block">Vendi qui per bloccare perdite</span>
+
+          <div className="p-2 rounded-lg bg-rose-950/20 border border-rose-500/30">
+            <span className="text-xs font-bold text-rose-300 block font-sans">Stop Loss (Protezione):</span>
+            <span className="num-mono font-bold text-sm text-rose-400 mt-0.5 block">
+              ${typeof plan.stopLossPriceUSD === 'number' ? plan.stopLossPriceUSD.toFixed(2) : plan.stopLossPriceUSD}
+            </span>
+            <span className="text-[11px] text-rose-300/80 block font-sans">Vendi qui per bloccare le perdite</span>
           </div>
-          <div>
-            <span className="text-[10px] text-emerald-400 block font-mono">Obiettivo Guadagno (TP1):</span>
-            <span className="num-mono font-semibold text-emerald-300">${plan.takeProfit1USD}</span>
-            <span className="text-[9px] text-emerald-400/80 block">Vendi qui per incassare</span>
+
+          <div className="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/30">
+            <span className="text-xs font-bold text-emerald-300 block font-sans">Obiettivo Guadagno (TP1):</span>
+            <span className="num-mono font-bold text-sm text-emerald-400 mt-0.5 block">
+              ${typeof plan.takeProfit1USD === 'number' ? plan.takeProfit1USD.toFixed(2) : plan.takeProfit1USD}
+            </span>
+            <span className="text-[11px] text-emerald-300/80 block font-sans">Vendi qui per incassare il profitto</span>
           </div>
-          <div>
-            <span className="text-[10px] text-slate-400 block font-mono">Guadagno / Rischio:</span>
-            <span className="num-mono font-bold text-amber-400">{plan.riskRewardRatio}</span>
-            <span className="text-[9px] text-slate-500 block">Proporzione resa/rischio</span>
+
+          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
+            <span className="text-xs font-bold text-slate-300 block font-sans">Rapporto Resa / Rischio:</span>
+            <span className="num-mono font-bold text-sm text-amber-400 mt-0.5 block">{plan.riskRewardRatio}</span>
+            <span className="text-[11px] text-slate-400 block font-sans">Proporzione guadagno vs perdita</span>
           </div>
         </div>
 
-        {/* Risk / Reward P&L Preview */}
-        <div className="flex items-center justify-between text-[11px] font-mono px-1 text-slate-400 mb-3">
-          <span className="flex items-center gap-1 text-rose-400">
-            <ShieldAlert className="w-3 h-3" /> Max Perdita: -€{plan.maxNetLossAtStopEUR}
+        {/* Risk / Reward P&L Badges */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono px-1 py-1 mb-3.5">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-950/40 border border-rose-500/40 text-rose-300 font-bold">
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+            <span>Perdita Max a Stop: -€{plan.maxNetLossAtStopEUR}</span>
           </span>
-          <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-            <TrendingUp className="w-3 h-3" /> Guadagno TP1: +€{plan.netProfitAtTP1EUR}
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Guadagno Netto a TP1: +€{plan.netProfitAtTP1EUR}</span>
           </span>
         </div>
 
-        {/* Timing Warning */}
+        {/* Timing Warning / Consigli Orari */}
         {plan.timingWarning && (
-          <div className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg mb-4 flex items-center gap-2">
-            <Clock className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-            <span className="leading-snug">{plan.timingWarning}</span>
+          <div className="text-xs text-amber-200/95 bg-amber-950/30 border border-amber-500/30 p-3 rounded-xl mb-4 flex items-start gap-2.5 leading-relaxed font-sans">
+            <Clock className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+            <span>{plan.timingWarning}</span>
           </div>
         )}
 

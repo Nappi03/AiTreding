@@ -181,35 +181,35 @@ export function WatchlistSection({
                 {/* Middle: Math Indicators & Live Quote */}
                 <div className="flex items-center gap-4 text-xs font-mono">
                   <div>
-                    <span className="text-[10px] text-slate-400 block font-semibold">Prezzo Live</span>
+                    <span className="text-xs text-slate-300 block font-bold font-sans">Prezzo Live</span>
                     <span className="text-sm font-bold text-white">${item.currentPrice ?? '--'}</span>
-                    <span className={`text-[10px] block ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`text-[11px] block font-semibold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {isUp ? '+' : ''}{changePct.toFixed(2)}%
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-slate-400 block font-semibold">RSI (14)</span>
+                    <span className="text-xs text-slate-300 block font-bold font-sans">RSI (14)</span>
                     <span
-                      className={`text-xs font-bold ${
+                      className={`text-sm font-bold ${
                         (item.rsi14 ?? 50) < 32
                           ? 'text-cyan-400'
                           : (item.rsi14 ?? 50) > 70
                           ? 'text-rose-400'
-                          : 'text-slate-300'
+                          : 'text-slate-200'
                       }`}
                       title="Indica se un titolo è stato comprato troppo (sopra 70) o svenduto (sotto 30)"
                     >
                       {item.rsi14 ?? 'N/A'}
                     </span>
-                    <span className="text-[9px] text-slate-500 block max-w-[90px] leading-tight">
-                      {(item.rsi14 ?? 50) < 32 ? 'Svenduto (rimbalzo?)' : (item.rsi14 ?? 50) > 70 ? 'Comprato troppo' : 'Neutrale'}
+                    <span className="text-[11px] text-slate-400 block max-w-[110px] leading-tight font-sans">
+                      {(item.rsi14 ?? 50) < 32 ? 'Svenduto' : (item.rsi14 ?? 50) > 70 ? 'Comprato troppo' : 'Neutrale'}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-slate-400 block font-semibold">Trend</span>
-                    <span className="text-xs font-semibold text-emerald-400">
+                    <span className="text-xs text-slate-300 block font-bold font-sans">Trend</span>
+                    <span className="text-xs font-bold text-emerald-400 block">
                       {item.trend === 'STRONG_BULLISH'
                         ? 'Salita Forte 🚀'
                         : item.trend === 'BULLISH'
@@ -220,20 +220,20 @@ export function WatchlistSection({
                         ? 'Discesa Forte ⚠️'
                         : 'Laterale / Stabile ⚖️'}
                     </span>
-                    <span className="text-[9px] text-slate-500 block">Direzione prezzo</span>
+                    <span className="text-[11px] text-slate-400 block font-sans">Direzione prezzo</span>
                   </div>
 
                   {/* Priority Score from Flash Triage */}
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Priorità AI</span>
+                    <span className="text-xs text-slate-300 block font-bold font-sans">Priorità AI</span>
                     <span
                       className={`num-mono font-black text-sm ${
-                        score >= 80 ? 'text-emerald-400' : score >= 60 ? 'text-amber-400' : 'text-slate-400'
+                        score >= 80 ? 'text-emerald-400' : score >= 60 ? 'text-amber-400' : 'text-slate-300'
                       }`}
                     >
                       {score > 0 ? `${score}/100` : '--'}
                     </span>
-                    <span className="text-[9px] text-slate-500 block">Occasione</span>
+                    <span className="text-[11px] text-slate-400 block font-sans">Occasione</span>
                   </div>
                 </div>
 
