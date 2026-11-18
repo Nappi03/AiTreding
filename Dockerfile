@@ -37,8 +37,8 @@ ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL="file:/app/data/trading.db"
 ENV TZ="Europe/Rome"
 
-# Install tzdata for accurate Italy (Europe/Rome) cron schedule timing
-RUN apk add --no-cache tzdata
+# Install tzdata for Italy cron timing and prisma CLI for fast DB push
+RUN apk add --no-cache tzdata && npm install -g prisma@6.4.1
 
 # Create data directory with proper write permissions for SQLite volume
 RUN mkdir -p /app/data && chmod 777 /app/data

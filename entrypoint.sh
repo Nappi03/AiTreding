@@ -10,7 +10,7 @@ mkdir -p /app/data
 
 # Sync Prisma SQLite schema
 echo "[DATABASE] Synchronizing SQLite database at /app/data/trading.db..."
-npx prisma db push --skip-generate
+prisma db push --accept-data-loss || npx prisma db push --accept-data-loss
 
 # Seed initial settings if DB is new
 if [ -f "/app/prisma/seed.js" ]; then
