@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AccountSettings {
+  id                    String   @id @default("default")
+  availableLiquidityEur Float    @default(10000.0)
+  riskPercentage        Float    @default(1.5)
+  revolutPlan           String   @default("Premium") // Standard, Plus, Premium, Metal, Ultra
+  freeTradesRemaining   Int      @default(5)
+  freeTradesResetDay    Int      @default(1)
+  telegramBotToken      String?
+  telegramChatId        String?
+  geminiApiKey          String?
+  morningScanTime       String   @default("08:30")
+  afternoonScanTime     String   @default("15:00")
+  autoScanEnabled       Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
+}
+
+model GeopoliticalBrief {
+  id              String   @id @default(cuid())
+  date            String   @unique // YYYY-MM-DD
+  title           String   @default("Global Geopolitical & Macro Brief")
+  summary         String
+  keyRisks        String   // JSON string of array
+  marketSentiment String   @default("NEUTRAL") // BULLISH, BEARISH, NEUTRAL, HIGH_VOLATILITY
+  sources         String?  // JSON string
+  createdAt       DateTime @default(now())
+}
+
+model Watchlist {
+  id            String    @id @default(cuid())
+  ticker        String    @unique
+  name          String
+  sector        String?
+  currency      String    @default("USD")
+  priorityScore Float?    // 0-100 assigned by Gemini Flash triage
+  lastTriageAt  DateTime?
+  triageSummary String?
+  addedAt       DateTime  @default(now())
+}
+
+model PortfolioPosition {
+  id                String   @id @default(cuid())
+  ticker            String   @unique
+  name              String
+  sharesOwned       Float
+  averageCostUSD    Float
+  currentPriceUSD   Float?
+  stopLossPriceUSD  Float?
+  takeProfitPriceUSD Float?
+  notes             String?
+  addedAt           DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model AiAnalysis {
+  id                          String   @id @default(cuid())
+  ticker                      String
+  date                        String   // YYYY-MM-DD
+  verdict                     String   // "COMPRA ORA" | "ORDINE LIMITE (COMPRA SUL RIBASSO)" | "MANTIENI (HOLD)" | "PRENDI PROFITTO PARZIALE" | "VENDI TUTTO"
+  convictionScore             Int      // 0-100
+  worthUsingRevolutSlot       Boolean
+  thesisSummary               String
+  geopoliticalAndMacroAnalysis String
+  companyCatalysts            String
+  technicalConfluence         String
+  revolutExecutionPlan        String   // JSON string containing detailed execution parameters
+  rawIndicators               String   // JSON string with RSI, MACD, SMA, etc.
+  createdAt                   DateTime @default(now())
+}
+
+model TelegramLog {
+  id        String   @id @default(cuid())
+  type      String   // "BRIEFING" | "ALERT" | "MANUAL_TEST" | "TRADE_CARD"
+  ticker    String?
+  message   String
+  status    String   // "SENT" | "FAILED"
+  error     String?
+  createdAt DateTime @default(now())
+}

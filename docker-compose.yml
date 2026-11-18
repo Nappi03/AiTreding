@@ -1,0 +1,29 @@
+services:
+  aitrading:
+    container_name: aitrading-analyst
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3050:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/trading.db
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - TZ=Europe/Rome
+      - PORT=3000
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/market-status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      # CasaOS metadata
+      icon: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/svg/tradingview.svg"
+      name: "AiTrading Revolut"
