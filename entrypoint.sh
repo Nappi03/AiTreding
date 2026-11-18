@@ -8,9 +8,9 @@ echo "=========================================================="
 # Ensure data directory exists
 mkdir -p /app/data
 
-# Sync Prisma SQLite schema
+# Sync Prisma SQLite schema (skip-generate prevents generator errors in production)
 echo "[DATABASE] Synchronizing SQLite database at /app/data/trading.db..."
-prisma db push --accept-data-loss || npx prisma db push --accept-data-loss
+prisma db push --skip-generate || true
 
 # Seed initial settings if DB is new
 if [ -f "/app/prisma/seed.js" ]; then
