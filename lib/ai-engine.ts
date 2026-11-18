@@ -27,12 +27,15 @@ export function createGeminiClient(apiKey: string): GoogleGenAI {
 }
 
 /**
- * Robust helper that tries the preferred model (gemini-2.5-pro with thinking & search)
- * and falls back gracefully to gemini-3.8-flash if search quota (429) or model (404) is triggered.
+ * Robust helper that cascades through available high-performance models:
+ * gemini-4-hydrogen -> gemini-3.8-flash -> gemini-3.7-flash -> gemini-3.5-flash-lite -> gemini-3.1-flash-lite
+ * If a model is unavailable (503 high demand), deprecated (404), or search quota is hit (429),
+ * it seamlessly and instantly tries the next model in the cascade without failing.
  */
 async function generateContentWithFallback(
   ai: GoogleGenAI,
   options: {
+    models?: string[];
     preferredModel?: string;
     fallbackModel?: string;
     prompt: string;
@@ -40,44 +43,47 @@ async function generateContentWithFallback(
     thinkingBudget?: number;
   }
 ): Promise<string> {
-  const {
-    preferredModel = 'gemini-2.5-pro',
-    fallbackModel = 'gemini-3.8-flash',
-    prompt,
-    useSearch = false,
-    thinkingBudget = 0,
-  } = options;
+  const defaultCascade = [
+    'gemini-4-hydrogen',
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+  ];
 
-  const modelsToTry = [preferredModel, fallbackModel];
+  const modelsToTry: string[] = options.models || [
+    ...(options.preferredModel ? [options.preferredModel] : []),
+    ...(options.fallbackModel ? [options.fallbackModel] : []),
+    ...defaultCascade,
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
   let lastError: any = null;
 
   for (const model of modelsToTry) {
-    // Attempt 1: with search and thinking config
+    // Attempt 1: with search if requested
+    if (options.useSearch) {
+      try {
+        const config: any = { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] };
+        const res = await ai.models.generateContent({ model, contents: options.prompt, config });
+        if (res.text) return res.text;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[AI Engine] ${model} con Google Search non riuscito (${err.status || err.message}). Riprovo senza search...`);
+      }
+    }
+
+    // Attempt 2: robust JSON generation without search tool (avoids 429 search quota)
     try {
       const config: any = { responseMimeType: 'application/json' };
-      if (useSearch) config.tools = [{ googleSearch: {} }];
-      if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
-
-      const res = await ai.models.generateContent({ model, contents: prompt, config });
+      const res = await ai.models.generateContent({ model, contents: options.prompt, config });
       if (res.text) return res.text;
     } catch (err: any) {
       lastError = err;
-      // Attempt 2: retry same model without search tool (fixes 429 quota on search)
-      if (useSearch) {
-        try {
-          const config: any = { responseMimeType: 'application/json' };
-          if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
-
-          const res = await ai.models.generateContent({ model, contents: prompt, config });
-          if (res.text) return res.text;
-        } catch (err2: any) {
-          lastError = err2;
-        }
-      }
+      console.warn(`[AI Engine] ${model} non disponibile (${err.status || err.message}). Tento modello successivo...`);
     }
   }
 
-  throw lastError || new Error('Generazione AI non riuscita');
+  throw lastError || new Error('Tutti i modelli AI disponibili sono attualmente occupati o non raggiungibili.');
 }
 
 // ==============================================================================
@@ -156,8 +162,7 @@ Restituisci la risposta ESCLUSIVAMENTE in formato JSON con questa struttura:
   `.trim();
 
   const text = await generateContentWithFallback(ai, {
-    preferredModel: 'gemini-2.5-pro',
-    fallbackModel: 'gemini-3.8-flash',
+    preferredModel: 'gemini-4-hydrogen',
     prompt,
     useSearch: true,
   });
@@ -300,8 +305,7 @@ Restituisci un JSON con un array di oggetti:
   `.trim();
 
   const rawFlashText = await generateContentWithFallback(ai, {
-    preferredModel: 'gemini-3.8-flash',
-    fallbackModel: 'gemini-2.5-flash',
+    preferredModel: 'gemini-4-hydrogen',
     prompt,
     useSearch: false,
   });
@@ -505,11 +509,9 @@ Restituisci la scheda operativa ESATTAMENTE in formato JSON:
   `.trim();
 
   const rawText = await generateContentWithFallback(ai, {
-    preferredModel: 'gemini-2.5-pro',
-    fallbackModel: 'gemini-3.8-flash',
+    preferredModel: 'gemini-4-hydrogen',
     prompt,
     useSearch: true,
-    thinkingBudget: 32768,
   });
 
   let parsed: any;

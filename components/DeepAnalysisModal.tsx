@@ -51,7 +51,7 @@ export function DeepAnalysisModal({
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-white font-mono tracking-tight">{ticker}</h2>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                  Gemini 2.5 Pro (Thinking 32k)
+                  Gemini AI Hedge-Fund
                 </span>
               </div>
               <p className="text-xs text-slate-400">
