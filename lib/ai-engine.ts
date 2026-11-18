@@ -81,7 +81,7 @@ async function generateContentWithFallback(
 }
 
 // ==============================================================================
-// LIVELO 1: Global Geopolitical Daily Brief (gemini-2.5-pro + googleSearch)
+// LIVELLO 1: Cosa Succede nel Mondo Oggi (Notizie & Economia)
 // ==============================================================================
 
 export interface GeopoliticalReport {
@@ -122,34 +122,36 @@ export async function getOrGenerateGeopoliticalBrief(forceRefresh = false): Prom
   const rssContext = macroRss.map((m) => `- [${m.source}] ${m.title}`).join('\n');
 
   const prompt = `
-Sei il Chief Global Macro & Geopolitical Strategist di un Hedge Fund quantitativo.
-Data attuale: ${today}.
+Sei un consulente finanziario ed economico di fiducia.
+Il tuo compito è spiegare a un amico intelligente (che NON è un esperto di finanza) cosa sta succedendo nel mondo oggi (${today}) e come queste notizie impattano i suoi investimenti azionari.
 
-Ultime notizie finanziarie e macroeconomiche rilevate via RSS:
+REGOLA TASSATIVA SUL LINGUAGGIO (MASSIMA PRIORITÀ):
+- Scrivi in italiano limpido, semplice, diretto e amichevole.
+- È ASSOLUTAMENTE VIETATO usare gergo tecnico o frasi da Wall Street non spiegate (NON usare termini come 'repricing del rischio', '5y5y breakeven', 'Equity Risk Premium', 'postura netta long', 'rischio spike sul Brent', 'disancoraggio delle aspettative').
+- Spiega sempre CAUSA ED EFFETTO in modo pratico: per ogni notizia, chiarisci concretamente cosa succede e perché fa salire o scendere i mercati. Esempio pratico: se c'è tensione in Medio Oriente o nel Mar Rosso, spiega che le navi mercantili devono fare percorsi più lunghi, i costi di trasporto salgono, il petrolio costa di più e questo fa aumentare le spese per le aziende, riducendo i loro profitti.
+
+Ultime notizie catturate dai feed RSS:
 ${rssContext}
 
-Compito:
-Usa Google Search per raccogliere le notizie più critiche delle ultime 24 ore a livello globale e redigi il "Master Report Geopolitico e Macroeconomico Giornaliero" per orientare le decisioni di trading su azioni quotate a Wall Street.
-
 Focalizzati su:
-1. Guerre e focolai geopolitici (Medio Oriente, Mar Rosso/Stretto di Hormuz, Ucraina).
-2. Tensioni USA-Cina-Taiwan, dazi commerciali e guerra tecnologica.
-3. Banche Centrali (FED, BCE), tassi d'interesse, inflazione e rendimenti dei Treasury USA.
-4. Supply chain globale dei semiconduttori (Nvidia, TSMC, ASML) e colli di bottiglia AI.
-5. Mercato energetico (Petrolio Brent/WTI, Gas naturale).
+1. Guerre e tensioni geopolitiche (Medio Oriente, Mar Rosso, Ucraina) e impatto sui costi di petrolio e trasporti.
+2. Rapporti e dazi tra USA, Cina ed Europa: come impattano le vendite delle grandi aziende tecnologiche.
+3. Decisioni delle Banche Centrali (FED americana e BCE europea) sui tassi d'interesse: se il denaro costa di più o di meno.
+4. Chip e intelligenza artificiale: novità importanti su componenti e server (Nvidia, TSMC, ASML).
+5. Energia e materie prime: petrolio e gas naturale.
 
-Restituisci la risposta ESCLUSIVAMENTE in formato JSON con la seguente struttura:
+Restituisci la risposta ESCLUSIVAMENTE in formato JSON con questa struttura:
 {
-  "title": "Titolo d'impatto sul quadro macroeconomico di oggi",
-  "summary": "Analisi approfondita, dettagliata e lucida in lingua italiana (3-4 paragrafi ben strutturati con impatti pratici per gli investitori)",
+  "title": "Titolo chiaro e comprensibile sul clima dei mercati oggi",
+  "summary": "Spiegazione approfondita, fluida e chiara (3-4 paragrafi ben separati). Spiega con semplicità cosa sta succedendo e perché un investitore comune dovrebbe stare attento o approfittarne.",
   "keyRisks": [
-    "Rischio 1: ...",
-    "Rischio 2: ...",
-    "Rischio 3: ...",
-    "Rischio 4: ..."
+    "Fattore da tenere d'occhio 1 (spiegato in modo semplice e concreto)...",
+    "Fattore da tenere d'occhio 2...",
+    "Fattore da tenere d'occhio 3...",
+    "Fattore da tenere d'occhio 4..."
   ],
   "marketSentiment": "BULLISH" | "BEARISH" | "NEUTRAL" | "HIGH_VOLATILITY",
-  "sources": ["Fonte 1", "Fonte 2"]
+  "sources": ["Google Search Grounding", "Reuters", "CNBC"]
 }
   `.trim();
 
@@ -159,22 +161,22 @@ Restituisci la risposta ESCLUSIVAMENTE in formato JSON con la seguente struttura
     prompt,
     useSearch: true,
   });
+
   let parsed: any;
   try {
     parsed = JSON.parse(text);
   } catch (err) {
-    // Clean potential markdown wrap if any
     const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
     parsed = JSON.parse(cleaned);
   }
 
   const report: GeopoliticalReport = {
     date: today,
-    title: parsed.title || `Quadro Geopolitico Globale - ${today}`,
-    summary: parsed.summary || 'Analisi macroeconomica generata.',
-    keyRisks: Array.isArray(parsed.keyRisks) ? parsed.keyRisks : ['Volatilità tassi', 'Tensioni geopolitiche'],
+    title: parsed.title || `Cosa Succede nel Mondo Oggi - ${today}`,
+    summary: parsed.summary || 'Quadro economico mondiale elaborato.',
+    keyRisks: Array.isArray(parsed.keyRisks) ? parsed.keyRisks : ['Tassi di interesse e inflazione', 'Tensioni geopolitiche'],
     marketSentiment: parsed.marketSentiment || 'NEUTRAL',
-    sources: Array.isArray(parsed.sources) ? parsed.sources : ['Google Search Grounding', 'Reuters', 'CNBC'],
+    sources: Array.isArray(parsed.sources) ? parsed.sources : ['Google Search', 'Reuters', 'CNBC'],
   };
 
   await prisma.geopoliticalBrief.upsert({
@@ -200,7 +202,7 @@ Restituisci la risposta ESCLUSIVAMENTE in formato JSON con la seguente struttura
 }
 
 // ==============================================================================
-// LIVELLO 2: Fast Market Triage (gemini-2.5-flash)
+// LIVELLO 2: Controllo Rapido (gemini-3.8-flash / gemini-2.5-flash)
 // ==============================================================================
 
 export interface TriageResult {
@@ -261,7 +263,6 @@ export async function runFastWatchlistTriage(
     return [];
   }
 
-  // Build condensed prompt for gemini-2.5-flash
   const summaryForFlash = triageData.map((d) => ({
     ticker: d.ticker,
     name: d.quote.name,
@@ -269,18 +270,21 @@ export async function runFastWatchlistTriage(
     changePercent: d.quote.changePercent,
     trend: d.indicators.trend,
     rsi: d.indicators.rsi14,
-    macdHist: d.indicators.macd?.histogram,
     signals: d.indicators.technicalSignals,
     news: d.newsHeadlines,
   }));
 
   const prompt = `
-Sei un Quant Market Screener ad alta velocità.
-Valuta questi titoli azionari e assegna a ciascuno un 'priorityScore' da 0 a 100 che indichi l'urgenza di approfondimento oggi.
-Criteri punteggio:
-- 80-100: Grandi catalizzatori in corso, breakout tecnico imminente, forte ipervenduto con rimbalzo o allarme critico.
-- 50-79: Setup interessante, trend consolidato ma senza emergenza immediata.
-- 0-49: Mercato laterale, no catalizzatori freschi.
+Sei un assistente personale che controlla rapidamente i titoli del giorno per un investitore.
+Valuta questi titoli azionari e assegna a ciascuno un 'priorityScore' (punteggio di attenzione) da 0 a 100:
+
+Criteri per il punteggio:
+- 80-100: Sta succedendo qualcosa di molto rilevante (forte calo o rimbalzo, trimestrale importante, notizia clamorosa o occasione d'oro).
+- 50-79: Titolo stabile, trend ordinario senza urgenze.
+- 0-49: Giornata noiosa o laterale, niente di interessante.
+
+REGOLA SUL LINGUAGGIO:
+In 'catalystSummary' scrivi una singola frase in italiano semplice e colloquiale che spieghi a colpo d'occhio il motivo principale (es. "Forte calo ieri per timori sui dazi, possibile rimbalzo" o "Buoni risultati trimestrali con vendite sopra le attese"). Non usare formule complesse o gergo da sala trading.
 
 Dati dei titoli:
 ${JSON.stringify(summaryForFlash, null, 2)}
@@ -290,7 +294,7 @@ Restituisci un JSON con un array di oggetti:
   {
     "ticker": "NVDA",
     "priorityScore": 88,
-    "catalystSummary": "Breve frase in italiano con il fattore scatenante (tecnico o fondamentale)"
+    "catalystSummary": "Breve frase semplice e chiara in italiano"
   }
 ]
   `.trim();
@@ -315,7 +319,7 @@ Restituisci un JSON con un array di oggetti:
   for (const item of triageData) {
     const flashEval = parsed.find((p) => p.ticker.toUpperCase() === item.ticker.toUpperCase());
     const score = flashEval?.priorityScore ?? 50;
-    const catalyst = flashEval?.catalystSummary ?? 'Monitoraggio tecnico regolare';
+    const catalyst = flashEval?.catalystSummary ?? 'Situazione regolare di mercato';
 
     // Update SQLite Watchlist
     await prisma.watchlist.updateMany({
@@ -342,7 +346,7 @@ Restituisci un JSON con un array di oggetti:
 }
 
 // ==============================================================================
-// LIVELLO 3: Deep Hedge-Fund Analysis (gemini-2.5-pro + thinkingConfig: 32768)
+// LIVELLO 3: Analisi Completa (gemini-2.5-pro / gemini-3.8-flash)
 // ==============================================================================
 
 export interface DeepAnalysisOutput {
@@ -378,7 +382,10 @@ export interface DeepAnalysisOutput {
   rawIndicators: CalculatedIndicators;
 }
 
-export async function runDeepHedgeFundAnalysis(ticker: string): Promise<DeepAnalysisOutput> {
+export async function runDeepHedgeFundAnalysis(
+  ticker: string,
+  options?: { skipAutoTelegram?: boolean }
+): Promise<DeepAnalysisOutput> {
   const symbol = ticker.toUpperCase();
   const apiKey = await getGeminiApiKey();
   if (!apiKey) {
@@ -416,68 +423,70 @@ export async function runDeepHedgeFundAnalysis(ticker: string): Promise<DeepAnal
     freeTradesRemaining,
   });
 
-  // 5. Query gemini-2.5-pro with thinking budget 32768 & Google Search
   const ai = createGeminiClient(apiKey);
 
   const prompt = `
-Sei il Senior Portfolio Manager & Quantitative Risk Architect di un Hedge Fund globale di prima fascia.
-Devi analizzare in profondità il titolo **${symbol}** (${quote.name}) per un investitore privato che esegue le operazioni MANUALMENTE sull'applicazione **Revolut** (Piano: ${revolutPlan}).
+Sei il consulente finanziario privato di fiducia di un utente che investe i propri risparmi tramite l'applicazione **Revolut** (Piano attivo: ${revolutPlan}).
+Devi analizzare in profondità il titolo **${symbol}** (${quote.name}) e spiegargli in modo chiaro, amichevole e trasparente cosa fare oggi.
 
-NON inventare numeri casuali: calibra l'analisi sui calcoli matematici oggettivi forniti di seguito.
+REGOLA TASSATIVA SUL LINGUAGGIO (MASSIMA PRIORITÀ):
+- Parla come a un amico intelligente che vuole investire bene ma NON è un trader di professione.
+- È ASSOLUTAMENTE VIETATO usare gergo tecnico incomprensibile (MAI usare termini come 'repricing del rischio', '5y5y breakeven', 'Equity Risk Premium', 'beta elevato', 'postura netta long', 'confluenza algoritmica', 'compressione dei multipli').
+- Quando citi un indicatore (es. RSI o Medie), spiega sempre cosa vuol dire in pratica (es. "Il titolo è sceso molto negli ultimi giorni ed è a buon prezzo, quindi c'è spazio per un rimbalzo", oppure "Ha corso troppo ultimamente ed è surriscaldato, meglio aspettare che ritracci").
+- Spiega sempre:
+  1. Cosa sta succedendo all'azienda e nel mondo.
+  2. Perché questo fa salire o scendere il prezzo del titolo.
+  3. Cosa fare esattamente su Revolut (se comprare, a quale prezzo limite e dove mettere lo Stop Loss di sicurezza).
 
-=== CONTESTO MACRO & GEOPOLITICO ODIERNO (MASTER BRIEFING) ===
+=== CONTESTO ECONOMICO E NOTIZIE DI OGGI ===
 Titolo: ${geoBrief.title}
-Sentiment Globale: ${geoBrief.marketSentiment}
-Sintesi Geopolitica: ${geoBrief.summary}
-Fattori di Rischio Chiave: ${geoBrief.keyRisks.join(' | ')}
+Clima Generale: ${geoBrief.marketSentiment}
+Sintesi: ${geoBrief.summary}
+Cosa tenere d'occhio: ${geoBrief.keyRisks.join(' | ')}
 
-=== DATI DI MERCATO & TECNICI OGGETTIVI ===
-Ticker: ${symbol} (${quote.name})
+=== DATI DI MERCATO ATTUALI ===
+Titolo: ${symbol} (${quote.name})
 Prezzo Attuale: $${quote.currentPrice} (${quote.change >= 0 ? '+' : ''}${quote.changePercent}%)
 Cambio EUR/USD Live: ${eurUsdRate}
-Massimo 52 Settimane: $${quote.fiftyTwoWeekHigh} | Minimo 52 Settimane: $${quote.fiftyTwoWeekLow}
-P/E Ratio: ${quote.peRatio || 'N/A'} | Volumi Giornalieri: ${quote.volume}
+Massimo 12 Mesi: $${quote.fiftyTwoWeekHigh} | Minimo 12 Mesi: $${quote.fiftyTwoWeekLow}
+P/E (Rapporto Prezzo/Utili): ${quote.peRatio || 'N/A'}
 
-=== INDICATORI MATEMATICI CALCOLATI ===
-- Trend Primario: ${indicators.trend}
-- RSI (14): ${indicators.rsi14}
-- SMA 20: $${indicators.sma20} | SMA 50: $${indicators.sma50} | EMA 200: $${indicators.ema200}
-- MACD Histogram: ${indicators.macd?.histogram ?? 'N/A'} (MACD: ${indicators.macd?.macd}, Signal: ${indicators.macd?.signal})
-- Bande di Bollinger: Inferiore $${indicators.bollingerBands?.lower}, Media $${indicators.bollingerBands?.middle}, Superiore $${indicators.bollingerBands?.upper} (Bandwidth: ${indicators.bollingerBands?.bandwidth}%)
-- ATR 14: $${indicators.atr14}
-- Supporto Tecnico Dinamico: $${indicators.supportLevelUSD}
-- Resistenza Tecnica Dinamica: $${indicators.resistanceLevelUSD}
-- Stop Loss Matematico (Base ATR/Supporti): $${indicators.suggestedStopLossUSD}
-- Take Profit 1 Target: $${indicators.suggestedTakeProfit1USD}
-- Take Profit 2 Target: $${indicators.suggestedTakeProfit2USD}
-- Segnali Tecnici Rilevati: ${indicators.technicalSignals.join('; ')}
+=== LIVELLI TECNICI MATEMATICI ===
+- Trend Principale: ${indicators.trend}
+- RSI (14): ${indicators.rsi14} (Sotto 30 = titolo svenduto/a sconto; Sopra 70 = comprato troppo/caro)
+- Prezzo Medio 20 Giorni: $${indicators.sma20} | 50 Giorni: $${indicators.sma50} | 200 Giorni: $${indicators.ema200}
+- Volatilità Media Giornaliera (ATR 14): $${indicators.atr14}
+- Pavimento di Supporto (dove il prezzo tende a rimbalzare): $${indicators.supportLevelUSD}
+- Tetto di Resistenza (dove il prezzo fatica a salire): $${indicators.resistanceLevelUSD}
+- Stop Loss Matematico di Sicurezza: $${indicators.suggestedStopLossUSD}
+- Primo Obiettivo di Guadagno (TP1): $${indicators.suggestedTakeProfit1USD}
+- Secondo Obiettivo di Guadagno (TP2): $${indicators.suggestedTakeProfit2USD}
 
-=== PARAMETRI CONTO REVOLUT & RISK MANAGEMENT ===
+=== PARAMETRI CONTO REVOLUT ===
 - Liquidità Disponibile: ${liquidityEur} EUR
-- Rischio Massimo per Operazione: ${riskPercentage}% (Max perdita consentita: ${(liquidityEur * (riskPercentage / 100)).toFixed(2)} EUR)
+- Rischio Massimo per Operazione: ${riskPercentage}% (Massima perdita consentita se scatta lo stop: ${(liquidityEur * (riskPercentage / 100)).toFixed(2)} EUR)
 - Piano Revolut: ${revolutPlan}
-- Trade Gratuiti Residui nel mese: ${freeTradesRemaining}
-- Calcolo Preliminare Baseline:
-  * Azioni frazionate: ${mathSizing.fractionalShares}
-  * Investimento consigliato: ${mathSizing.recommendedInvestmentEUR} EUR
-  * Prezzo di pareggio calcolato (incluse commissioni): $${mathSizing.breakEvenPriceUSD}
-  * Rischio/Rendimento: ${mathSizing.riskRewardRatio}
+- Trade Gratuiti Rimasti nel mese: ${freeTradesRemaining}
+- Calcoli di Base:
+  * Numero Azioni Frazionarie: ${mathSizing.fractionalShares}
+  * Euro Consigliati da Investire: ${mathSizing.recommendedInvestmentEUR} EUR
+  * Prezzo di Pareggio Reale (Break-Even): $${mathSizing.breakEvenPriceUSD}
 
-=== RECENTI NOTIZIE AZIENDALI ===
+=== ULTIME NOTIZIE SPECIFICHE SULL'AZIENDA ===
 ${companyNews.map((n) => `- [${n.source}] ${n.title}`).join('\n') || 'Nessuna breaking news recente specifica.'}
 
 COMPITO:
-Usa Google Search per cercare notizie dell'ultima ora su "${symbol} stock news earnings issues" (es. problemi ai server Nvidia, cause antitrust, trimestrali, downgrade/upgrade di analisti).
-Esegui un ragionamento approfondito (deep hedge fund thinking) e restituisci la scheda operativa ESATTAMENTE in formato JSON con questi campi:
+Usa Google Search per cercare notizie dell'ultima ora su "${symbol} stock news earnings issues" (trimestrali, problemi ai fornitori, cause legali, annunci recenti).
+Restituisci la scheda operativa ESATTAMENTE in formato JSON:
 
 {
   "verdict": "COMPRA ORA" | "ORDINE LIMITE (COMPRA SUL RIBASSO)" | "MANTIENI (HOLD)" | "PRENDI PROFITTO PARZIALE" | "VENDI TUTTO",
   "convictionScore": 0-100,
   "worthUsingRevolutSlot": boolean,
-  "thesisSummary": "Spiegazione chiara, autorevole e diretta in italiano del perché comprare o vendere adesso",
-  "geopoliticalAndMacroAnalysis": "Impatto concreto del quadro geopolitico e macroeconomico odierno sul modello di business e sui margini del titolo",
-  "companyCatalysts": "Analisi delle notizie specifiche dell'azienda, annunci recenti, catena di fornitura ed earnings",
-  "technicalConfluence": "Lettura integrata dei calcoli matematici (RSI, Medie Mobili, Volumi, Bande di Bollinger e ATR)",
+  "thesisSummary": "Spiegazione chiara, sincera e diretta in italiano semplice del perché comprare, vendere o aspettare adesso",
+  "geopoliticalAndMacroAnalysis": "Cosa succede nel mondo (guerre, dazi, tassi, energia) e come impatta concretamente su questa azienda e sui suoi guadagni futuri",
+  "companyCatalysts": "Notizie recenti dell'azienda (nuovi prodotti, utili, clienti, problemi ai server) spiegate in modo facile",
+  "technicalConfluence": "Cosa dicono i prezzi e i grafici: se il titolo è salito troppo o sceso tanto, dove si trovano i livelli di supporto e sicurezza",
   "revolutExecutionPlan": {
     "orderType": "Ordine di Mercato" | "Ordine Limite (Limit Order)" | "Stop Order",
     "idealEntryPriceUSD": number,
@@ -490,7 +499,7 @@ Esegui un ragionamento approfondito (deep hedge fund thinking) e restituisci la 
     "fractionalSharesToBuy": number,
     "netProfitAtTP1EUR": number,
     "maxNetLossAtStopEUR": number,
-    "timingWarning": "Avviso sugli orari dei mercati e cambio valuta Revolut"
+    "timingWarning": "Consiglio pratico sugli orari di mercato e sul cambio valuta Revolut"
   }
 }
   `.trim();
@@ -553,10 +562,10 @@ Esegui un ragionamento approfondito (deep hedge fund thinking) e restituisci la 
     verdict: parsed.verdict || 'MANTIENI (HOLD)',
     convictionScore: Math.min(100, Math.max(0, parsed.convictionScore ?? 70)),
     worthUsingRevolutSlot: parsed.worthUsingRevolutSlot ?? calibratedSizing.worthUsingSlot,
-    thesisSummary: parsed.thesisSummary || `Analisi tecnica e fondamentale di ${symbol}.`,
-    geopoliticalAndMacroAnalysis: parsed.geopoliticalAndMacroAnalysis || 'Quadro macroeconomico valutato.',
-    companyCatalysts: parsed.companyCatalysts || 'Catalizzatori aziendali analizzati.',
-    technicalConfluence: parsed.technicalConfluence || 'Confluenza tecnica calcolata.',
+    thesisSummary: parsed.thesisSummary || `Analisi chiara e diretta di ${symbol}.`,
+    geopoliticalAndMacroAnalysis: parsed.geopoliticalAndMacroAnalysis || 'Quadro economico valutato.',
+    companyCatalysts: parsed.companyCatalysts || 'Novità aziendali analizzate.',
+    technicalConfluence: parsed.technicalConfluence || 'Grafici e prezzi valutati.',
     revolutExecutionPlan: finalPlan,
     rawIndicators: indicators,
   };
@@ -586,29 +595,32 @@ Esegui un ragionamento approfondito (deep hedge fund thinking) e restituisci la 
   });
 
   // Automated Telegram alert dispatch:
-  // 1. High conviction buy opportunity (convictionScore >= 75)
-  if (
-    (analysisOutput.verdict === 'COMPRA ORA' || analysisOutput.verdict.includes('COMPRA')) &&
-    analysisOutput.convictionScore >= 75
-  ) {
-    sendRevolutActionCardTelegram(analysisOutput).catch((e) =>
-      console.warn('Auto Telegram Action Card failed:', e?.message)
-    );
-  }
+  // If skipAutoTelegram is false (e.g. manual single-stock analysis)
+  if (!options?.skipAutoTelegram) {
+    // 1. High conviction buy opportunity (convictionScore >= 75)
+    if (
+      (analysisOutput.verdict === 'COMPRA ORA' || analysisOutput.verdict.includes('COMPRA')) &&
+      analysisOutput.convictionScore >= 75
+    ) {
+      sendRevolutActionCardTelegram(analysisOutput).catch((e) =>
+        console.warn('Auto Telegram Action Card failed:', e?.message)
+      );
+    }
 
-  // 2. Urgent sell alert on owned portfolio stock
-  if (
-    ownedPosition &&
-    (analysisOutput.verdict === 'VENDI TUTTO' || analysisOutput.verdict === 'PRENDI PROFITTO PARZIALE')
-  ) {
-    sendUrgentPortfolioAlertTelegram({
-      ticker: symbol,
-      verdict: analysisOutput.verdict,
-      currentPrice: quote.currentPrice,
-      stopLossPrice: finalPlan.stopLossPriceUSD,
-      takeProfitPrice: finalPlan.takeProfit1USD,
-      reason: analysisOutput.thesisSummary,
-    }).catch((e) => console.warn('Auto Telegram Urgent Alert failed:', e?.message));
+    // 2. Urgent sell alert on owned portfolio stock
+    if (
+      ownedPosition &&
+      (analysisOutput.verdict === 'VENDI TUTTO' || analysisOutput.verdict === 'PRENDI PROFITTO PARZIALE')
+    ) {
+      sendUrgentPortfolioAlertTelegram({
+        ticker: symbol,
+        verdict: analysisOutput.verdict,
+        currentPrice: quote.currentPrice,
+        stopLossPrice: finalPlan.stopLossPriceUSD,
+        takeProfitPrice: finalPlan.takeProfit1USD,
+        reason: analysisOutput.thesisSummary,
+      }).catch((e) => console.warn('Auto Telegram Urgent Alert failed:', e?.message));
+    }
   }
 
   return analysisOutput;

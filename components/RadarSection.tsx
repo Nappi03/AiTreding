@@ -46,7 +46,7 @@ export function RadarSection({
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Migliori opportunità d'acquisto calcolate matematicamente e allarmi critici sui tuoi titoli Revolut
+            Migliori occasioni d'acquisto calcolate in modo sicuro e allarmi sui tuoi investimenti Revolut
           </p>
         </div>
 
@@ -56,20 +56,20 @@ export function RadarSection({
             onClick={onTriggerTriage}
             disabled={isScanning}
             className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors disabled:opacity-50"
-            title="Avvia screening veloce con Gemini 2.5 Flash su tutta la Watchlist"
+            title="Avvia controllo rapido con l'AI su tutti i titoli osservati"
           >
             <Activity className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-            <span>Fast Triage (Flash)</span>
+            <span>Controllo Rapido</span>
           </button>
 
           <button
             onClick={onTriggerFullScan}
             disabled={isScanning}
             className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black transition-colors disabled:opacity-50 shadow-md shadow-amber-500/20"
-            title="Esegui subito la scansione completa istituzionale (Report Macro + Triage + Deep Analysis)"
+            title="Esegui subito il controllo completo (Notizie del Mondo + Controllo Rapido + Analisi Approfondita)"
           >
             <Play className={`w-3.5 h-3.5 fill-black ${isScanning ? 'animate-spin' : ''}`} />
-            <span>{isScanning ? 'Scansione in corso...' : 'Scansione Completa'}</span>
+            <span>{isScanning ? 'Controllo in corso...' : 'Scansione Completa'}</span>
           </button>
         </div>
       </div>

@@ -63,7 +63,7 @@ export function GeopoliticalSection({
           <div className="flex items-center gap-2">
             <Globe2 className="w-5 h-5 text-emerald-400" />
             <h1 className="text-base sm:text-lg font-black text-white uppercase font-mono tracking-wider">
-              Global Geopolitical Daily Brief (Livello 1)
+              Cosa Succede nel Mondo Oggi (Notizie & Economia)
             </h1>
             <span
               className={`text-[10px] font-mono px-2.5 py-0.5 rounded font-bold uppercase ${
@@ -74,11 +74,11 @@ export function GeopoliticalSection({
                   : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
               }`}
             >
-              Sentiment: {sentiment}
+              Umore Mercato: {sentiment === 'BULLISH' ? 'Ottimista (Salita)' : sentiment === 'BEARISH' ? 'Pessimista (Discesa)' : sentiment === 'HIGH_VOLATILITY' ? 'Molto Nervoso' : 'Cauto / Neutrale'}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-            Quadro macroeconomico e geopolitico globale elaborato da <b>Gemini 2.5 Pro</b> con Google Search attivo. Questo report viene memorizzato nella cache di SQLite per iniettarlo in tutte le analisi dei singoli titoli.
+            Sintesi chiara delle notizie mondiali, tassi e petrolio spiegati in parole semplici dall'Intelligenza Artificiale, per farti capire cosa succede e come orientare i tuoi investimenti su Revolut.
           </p>
         </div>
 

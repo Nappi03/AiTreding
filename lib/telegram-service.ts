@@ -24,7 +24,49 @@ export async function getTelegramCredentials(): Promise<{ botToken: string; chat
 }
 
 /**
- * Send raw HTML message to Telegram Bot
+ * Splits text into clean Telegram-compliant chunks (max 3800 characters)
+ * splitting only at paragraph breaks (\n\n or \n) to preserve readability and complete sentences.
+ */
+export function splitTelegramMessage(text: string, maxChunkLength = 3800): string[] {
+  if (text.length <= maxChunkLength) return [text];
+
+  const chunks: string[] = [];
+  const paragraphs = text.split('\n\n');
+  let currentChunk = '';
+
+  for (const paragraph of paragraphs) {
+    if ((currentChunk + '\n\n' + paragraph).length <= maxChunkLength) {
+      currentChunk = currentChunk ? currentChunk + '\n\n' + paragraph : paragraph;
+    } else {
+      if (currentChunk) {
+        chunks.push(currentChunk);
+        currentChunk = '';
+      }
+      if (paragraph.length <= maxChunkLength) {
+        currentChunk = paragraph;
+      } else {
+        const lines = paragraph.split('\n');
+        for (const line of lines) {
+          if ((currentChunk + '\n' + line).length <= maxChunkLength) {
+            currentChunk = currentChunk ? currentChunk + '\n' + line : line;
+          } else {
+            if (currentChunk) chunks.push(currentChunk);
+            currentChunk = line;
+          }
+        }
+      }
+    }
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
+}
+
+/**
+ * Send HTML message to Telegram Bot with auto-chunking and anti-duplicate protection
  */
 export async function sendTelegramMessage(
   htmlText: string,
@@ -39,7 +81,7 @@ export async function sendTelegramMessage(
         data: {
           type: logMeta.type,
           ticker: logMeta.ticker,
-          message: htmlText.slice(0, 500),
+          message: htmlText.slice(0, 1000),
           status: 'FAILED',
           error: errorMsg,
         },
@@ -48,29 +90,74 @@ export async function sendTelegramMessage(
     return { success: false, error: errorMsg };
   }
 
-  try {
-    const url = `https://api.telegram.org/bot${creds.botToken}/sendMessage`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: creds.chatId,
-        text: htmlText,
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-      }),
+  // Anti-duplicate protection: avoid sending duplicate briefings within 5 minutes
+  if (logMeta?.type === 'BRIEFING') {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const recentBriefing = await prisma.telegramLog.findFirst({
+      where: {
+        type: 'BRIEFING',
+        status: 'SENT',
+        createdAt: { gte: fiveMinutesAgo },
+      },
     });
 
-    const data = await response.json();
+    if (recentBriefing) {
+      console.log('[TELEGRAM] Doppio invio evitato: briefing già inviato negli ultimi 5 minuti.');
+      return { success: true, messageId: -1 };
+    }
+  }
 
-    if (!response.ok || !data.ok) {
-      const err = data.description || `HTTP ${response.status}`;
-      if (logMeta) {
+  // Split message cleanly if it exceeds Telegram limits without cutting sentences
+  const chunks = splitTelegramMessage(htmlText, 3800);
+  let lastMessageId: number | undefined;
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    try {
+      const url = `https://api.telegram.org/bot${creds.botToken}/sendMessage`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: creds.chatId,
+          text: chunk,
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        const err = data.description || `HTTP ${response.status}`;
+        if (logMeta && i === 0) {
+          await prisma.telegramLog.create({
+            data: {
+              type: logMeta.type,
+              ticker: logMeta.ticker,
+              message: chunk.slice(0, 1000),
+              status: 'FAILED',
+              error: err,
+            },
+          });
+        }
+        return { success: false, error: err };
+      }
+
+      lastMessageId = data.result?.message_id;
+
+      // Small delay between chunks to prevent Telegram flood limits
+      if (i < chunks.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    } catch (error: any) {
+      const err = error?.message || 'Errore di connessione Telegram';
+      if (logMeta && i === 0) {
         await prisma.telegramLog.create({
           data: {
             type: logMeta.type,
             ticker: logMeta.ticker,
-            message: htmlText.slice(0, 500),
+            message: chunk.slice(0, 1000),
             status: 'FAILED',
             error: err,
           },
@@ -78,38 +165,24 @@ export async function sendTelegramMessage(
       }
       return { success: false, error: err };
     }
-
-    if (logMeta) {
-      await prisma.telegramLog.create({
-        data: {
-          type: logMeta.type,
-          ticker: logMeta.ticker,
-          message: htmlText.slice(0, 500),
-          status: 'SENT',
-        },
-      });
-    }
-
-    return { success: true, messageId: data.result?.message_id };
-  } catch (error: any) {
-    const err = error?.message || 'Errore di connessione Telegram';
-    if (logMeta) {
-      await prisma.telegramLog.create({
-        data: {
-          type: logMeta.type,
-          ticker: logMeta.ticker,
-          message: htmlText.slice(0, 500),
-          status: 'FAILED',
-          error: err,
-        },
-      });
-    }
-    return { success: false, error: err };
   }
+
+  if (logMeta) {
+    await prisma.telegramLog.create({
+      data: {
+        type: logMeta.type,
+        ticker: logMeta.ticker,
+        message: htmlText.slice(0, 1000),
+        status: 'SENT',
+      },
+    });
+  }
+
+  return { success: true, messageId: lastMessageId };
 }
 
 /**
- * Format and send the Revolut Action Card
+ * Format and send the Revolut Action Card in clear, simple Italian
  */
 export async function sendRevolutActionCardTelegram(analysis: {
   ticker: string;
@@ -118,47 +191,47 @@ export async function sendRevolutActionCardTelegram(analysis: {
   thesisSummary: string;
   revolutExecutionPlan: any;
 }): Promise<{ success: boolean; error?: string }> {
-  const p = typeof analysis.revolutExecutionPlan === 'string'
-    ? JSON.parse(analysis.revolutExecutionPlan)
-    : analysis.revolutExecutionPlan;
+  const p =
+    typeof analysis.revolutExecutionPlan === 'string'
+      ? JSON.parse(analysis.revolutExecutionPlan)
+      : analysis.revolutExecutionPlan;
 
   const isBuy = analysis.verdict.includes('COMPRA');
   const verdictEmoji = isBuy ? '🟢' : analysis.verdict.includes('VENDI') ? '🔴' : '🟡';
 
   const message = `
-${verdictEmoji} <b>REVOLUT ACTION CARD: ${analysis.ticker}</b>
+${verdictEmoji} <b>COSA FARE SU REVOLUT: ${analysis.ticker}</b>
 ━━━━━━━━━━━━━━━━━━━━
-🎯 <b>Verdetto:</b> <code>${analysis.verdict}</code>
-⭐️ <b>Conviction Score:</b> <b>${analysis.convictionScore}/100</b>
-📋 <b>Tipo Ordine Revolut:</b> <code>${p.orderType || 'Ordine Limite'}</code>
+🎯 <b>Consiglio:</b> <code>${analysis.verdict}</code>
+⭐️ <b>Affidabilità Consiglio:</b> <b>${analysis.convictionScore}/100</b>
+📋 <b>Tipo di Ordine da Scegliere:</b> <code>${p.orderType || 'Ordine Limite'}</code>
 
-💡 <b>Tesi Flash:</b>
-<i>${analysis.thesisSummary}</i>
+💡 <b>Perché fare questa operazione (spiegazione semplice):</b>
+${analysis.thesisSummary}
 
-📊 <b>PARAMETRI COPIA REVOLUT:</b>
-• Prezzo Ingresso: <code>${p.idealEntryPriceUSD ? `$${p.idealEntryPriceUSD}` : 'A Mercato'}</code>
-• Pareggio (Break-Even): <code>$${p.breakEvenPriceUSD}</code>
-• Stop Loss: <code>$${p.stopLossPriceUSD}</code>
-• Take Profit 1: <code>$${p.takeProfit1USD}</code>
-• Take Profit 2: <code>$${p.takeProfit2USD || '-'}</code>
-• Rischio/Rendimento: <b>${p.riskRewardRatio || '1 : 2.5'}</b>
+📊 <b>NUMERI DA COPIARE SU REVOLUT:</b>
+• Prezzo a cui Comprare: <code>${p.idealEntryPriceUSD ? `$${p.idealEntryPriceUSD}` : 'Prezzo Attuale'}</code>
+• Pareggio (Break-Even): <code>$${p.breakEvenPriceUSD}</code> <i>(da qui inizi a guadagnare)</i>
+• Stop Loss (Protezione): <code>$${p.stopLossPriceUSD}</code> <i>(se scende qui, vendi per bloccare le perdite)</i>
+• Obiettivo di Guadagno (TP1): <code>$${p.takeProfit1USD}</code> <i>(vendi qui per incassare)</i>
+${p.takeProfit2USD ? `• Secondo Obiettivo (TP2): <code>$${p.takeProfit2USD}</code>\n` : ''}• Rapporto Rischio/Guadagno: <b>${p.riskRewardRatio || '1 : 2.5'}</b>
 
-💰 <b>GESTIONE CAPITALE REVOLUT:</b>
-• Euro da Investire: <code>${p.recommendedInvestmentEUR}€</code>
-• Azioni Frazionate: <code>${p.fractionalSharesToBuy}</code>
-• Max Perdita a Stop: <code>-${p.maxNetLossAtStopEUR}€</code>
-• Guadagno Netto TP1: <code>+${p.netProfitAtTP1EUR}€</code>
+💰 <b>QUANTO INVESTIRE (CALCOLO DI SICUREZZA):</b>
+• Euro Consigliati da Investire: <code>${p.recommendedInvestmentEUR}€</code>
+• Quantità di Azioni da Digitare: <code>${p.fractionalSharesToBuy}</code>
+• Massima Perdita se Scatta lo Stop: <code>-${p.maxNetLossAtStopEUR}€</code>
+• Guadagno Netto all'Obiettivo: <code>+${p.netProfitAtTP1EUR}€</code>
 
 ${p.timingWarning ? `⚠️ <i>${p.timingWarning}</i>\n` : ''}
 ━━━━━━━━━━━━━━━━━━━━
-<i>📱 Clicca sui numeri monospazio per copiarli direttamente nell'app Revolut</i>
+<i>📱 Suggerimento: tocca i numeri monospazio per copiarli subito nell'app Revolut.</i>
   `.trim();
 
   return sendTelegramMessage(message, { type: 'TRADE_CARD', ticker: analysis.ticker });
 }
 
 /**
- * Format and send urgent portfolio alert
+ * Format and send urgent portfolio alert in simple Italian
  */
 export async function sendUrgentPortfolioAlertTelegram(params: {
   ticker: string;
@@ -169,26 +242,26 @@ export async function sendUrgentPortfolioAlertTelegram(params: {
   reason: string;
 }): Promise<{ success: boolean; error?: string }> {
   const message = `
-🚨 <b>ALLARME URGENTE PORTAFOGLIO REVOLUT!</b>
+🚨 <b>ATTENZIONE: AZIONE RICHIESTA SUL TUO PORTAFOGLIO REVOLUT</b>
 ━━━━━━━━━━━━━━━━━━━━
-⚠️ Titolo: <b>${params.ticker}</b>
-⚡️ Azione Richiesta: <code>${params.verdict}</code>
-💵 Prezzo Attuale: <code>$${params.currentPrice}</code>
-${params.stopLossPrice ? `🛑 Stop Loss di Riferimento: <code>$${params.stopLossPrice}</code>\n` : ''}
-${params.takeProfitPrice ? `🎯 Take Profit di Riferimento: <code>$${params.takeProfitPrice}</code>\n` : ''}
+Titolo: <b>${params.ticker}</b>
+Azione Consigliata: <code>${params.verdict}</code>
+Prezzo Attuale: <code>$${params.currentPrice}</code>
+${params.stopLossPrice ? `🛑 Stop Loss di Sicurezza: <code>$${params.stopLossPrice}</code>\n` : ''}
+${params.takeProfitPrice ? `🎯 Obiettivo di Guadagno: <code>$${params.takeProfitPrice}</code>\n` : ''}
 
-<b>Motivazione:</b>
+<b>Cosa sta succedendo:</b>
 ${params.reason}
 
 ━━━━━━━━━━━━━━━━━━━━
-<i>Apri immediatamente l'app Revolut per proteggere il capitale o bloccare i profitti.</i>
+<i>👉 Apri subito l'app Revolut per verificare il titolo e proteggere il tuo capitale.</i>
   `.trim();
 
   return sendTelegramMessage(message, { type: 'ALERT', ticker: params.ticker });
 }
 
 /**
- * Format and send scheduled Daily Briefing
+ * Format and send scheduled Daily Briefing in clear, direct Italian without truncation
  */
 export async function sendDailyBriefingTelegram(params: {
   timeLabel: string; // e.g. "08:30" or "15:00"
@@ -210,30 +283,42 @@ export async function sendDailyBriefingTelegram(params: {
       ? params.topOpportunities
           .map(
             (o) =>
-              `• <b>${o.ticker}</b> (${o.convictionScore}/100) - <code>${o.verdict}</code>\n  Ingresso: <code>$${o.entryPriceUSD}</code> | Investimento: <code>${o.recommendedInvestmentEUR}€</code> | Azioni: <code>${o.fractionalSharesToBuy}</code>`
+              `• <b>${o.ticker}</b> (Affidabilità: ${o.convictionScore}/100) - <code>${o.verdict}</code>\n  Prezzo Ingresso: <code>$${o.entryPriceUSD}</code> | Investimento: <code>${o.recommendedInvestmentEUR}€</code> | Azioni: <code>${o.fractionalSharesToBuy}</code>`
           )
           .join('\n\n')
-      : '<i>Nessuna operazione con Conviction Score >= 75 in questa scansione.</i>';
+      : '<i>Nessuna nuova operazione consigliata oggi. I mercati non offrono ingressi a basso rischio.</i>';
 
   const alertsList =
     params.portfolioAlerts.length > 0
       ? params.portfolioAlerts.map((a) => `⚠️ <b>${a.ticker}</b>: ${a.message}`).join('\n')
-      : '✅ Tutti i titoli in portafoglio sono entro i parametri di sicurezza.';
+      : '✅ I titoli nel tuo portafoglio sono tranquilli e lontani dai livelli di allarme.';
 
+  // Determine practical final advice
+  let practicalAdvice = '';
+  if (params.portfolioAlerts.length > 0) {
+    practicalAdvice = `⚠️ <b>Consiglio pratico di oggi:</b> Controlla subito i tuoi titoli su Revolut: ci sono posizioni che richiedono attenzione per proteggere i guadagni o limitare le perdite.`;
+  } else if (params.topOpportunities.length > 0) {
+    const best = params.topOpportunities[0];
+    practicalAdvice = `💡 <b>Consiglio pratico di oggi:</b> C'è un'ottima occasione su <b>${best.ticker}</b>. Se vuoi entrare, copia i numeri indicati sopra impostando un ordine limite sull'app Revolut.`;
+  } else {
+    practicalAdvice = `💡 <b>Consiglio pratico di oggi:</b> Oggi conviene stare fermi e aspettare. Non ci sono occasioni sicure e forzare un'operazione aumenterebbe solo il rischio.`;
+  }
+
+  // Full summary without any artificial slicing!
   const message = `
-☀️ <b>REPORT AI TRADING REVOLUT - ORE ${params.timeLabel}</b>
+☀️ <b>AGGIORNAMENTO MERCATI E REVOLUT (ORE ${params.timeLabel})</b>
 ━━━━━━━━━━━━━━━━━━━━
-🌍 <b>Macro & Geopolitica:</b> <b>${params.geopoliticalSentiment}</b>
-${params.geopoliticalSummary.slice(0, 350)}...
+🌍 <b>Cosa Succede nel Mondo Oggi (Notizie & Economia):</b>
+${params.geopoliticalSummary.trim()}
 
-🛡 <b>Stato Portafoglio Revolut:</b>
+🛡 <b>Stato dei Tuoi Titoli su Revolut:</b>
 ${alertsList}
 
-🔥 <b>Top Opportunità del Momento:</b>
+🔥 <b>Migliori Occasioni del Giorno:</b>
 ${oppsList}
 
 ━━━━━━━━━━━━━━━━━━━━
-<i>Accedi alla dashboard per l'analisi tecnica completa e i grafici interattivi.</i>
+${practicalAdvice}
   `.trim();
 
   return sendTelegramMessage(message, { type: 'BRIEFING' });

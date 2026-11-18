@@ -171,7 +171,7 @@ export function SettingsSection({ onSettingsUpdated }: SettingsSectionProps) {
         <div className="bg-[#0e1422] border border-[#1f2d47] rounded-xl p-5 space-y-4">
           <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase text-amber-400 border-b border-slate-800 pb-2">
             <Wallet className="w-4 h-4" />
-            <span>Parametri Conto Revolut & Position Sizing</span>
+            <span>Parametri Conto Revolut & Calcolo Quanto Investire</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">

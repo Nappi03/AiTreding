@@ -207,7 +207,7 @@ export function TopBar({
           >
             <Globe2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <div>
-              <div className="text-[9px] uppercase tracking-wider font-mono text-slate-400">Report Macro</div>
+              <div className="text-[9px] uppercase tracking-wider font-mono text-slate-400">Notizie Mondo</div>
               <div className="text-[11px] font-semibold flex items-center gap-1">
                 {hasBrief ? 'Aggiornato Oggi' : 'Genera Ora'}
               </div>

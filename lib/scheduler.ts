@@ -11,16 +11,34 @@ import { getMarketTradingHoursStatus } from './revolut-engine';
 
 let scheduledTasks: ScheduledTask[] = [];
 let isSchedulerRunning = false;
+let isScanRunning = false;
+let lastScanTimestamp = 0;
 
 /**
- * Execute the Scheduled Macro & Watchlist Scan
+ * Execute the Scheduled Macro & Watchlist Scan with strict anti-duplicate lock
  */
 export async function executeScheduledScan(label = 'PROGRAMMATO'): Promise<{
   geopoliticalSentiment: string;
   topOpportunitiesCount: number;
   alertsCount: number;
 }> {
-  console.log(`[SCHEDULER] Starting scheduled scan (${label})...`);
+  const now = Date.now();
+
+  // Concurrency lock: prevent parallel scans
+  if (isScanRunning) {
+    console.log(`[SCHEDULER] Scansione già in corso, evito esecuzione duplicata (${label}).`);
+    return { geopoliticalSentiment: 'NEUTRAL', topOpportunitiesCount: 0, alertsCount: 0 };
+  }
+
+  // Anti-duplicate lock: prevent double trigger within 5 minutes unless manually requested
+  if (now - lastScanTimestamp < 5 * 60 * 1000 && label !== 'SCANSIONE MANUALE UI') {
+    console.log(`[SCHEDULER] Scansione già eseguita negli ultimi 5 minuti, salto (${label}).`);
+    return { geopoliticalSentiment: 'NEUTRAL', topOpportunitiesCount: 0, alertsCount: 0 };
+  }
+
+  isScanRunning = true;
+  lastScanTimestamp = now;
+  console.log(`[SCHEDULER] Avvio scansione programmata (${label})...`);
 
   try {
     // 1. Generate or retrieve today's Geopolitical Master Brief
@@ -35,11 +53,12 @@ export async function executeScheduledScan(label = 'PROGRAMMATO'): Promise<{
 
     for (const c of topCandidates) {
       try {
-        console.log(`[SCHEDULER] Running deep analysis for top triage candidate: ${c.ticker}`);
-        const deep = await runDeepHedgeFundAnalysis(c.ticker);
+        console.log(`[SCHEDULER] Analisi approfondita per: ${c.ticker}`);
+        // skipAutoTelegram = true avoids sending isolated cards during the scheduled scan
+        const deep = await runDeepHedgeFundAnalysis(c.ticker, { skipAutoTelegram: true });
         deepAnalyses.push(deep);
       } catch (err: any) {
-        console.warn(`[SCHEDULER] Deep analysis error for ${c.ticker}:`, err?.message);
+        console.warn(`[SCHEDULER] Errore analisi su ${c.ticker}:`, err?.message);
       }
     }
 
@@ -53,7 +72,7 @@ export async function executeScheduledScan(label = 'PROGRAMMATO'): Promise<{
 
         // Check if Stop Loss or Take Profit touched
         if (pos.stopLossPriceUSD && quote.currentPrice <= pos.stopLossPriceUSD) {
-          const alertMsg = `Prezzo attuale ($${quote.currentPrice}) ha toccato o violato lo Stop Loss ($${pos.stopLossPriceUSD})!`;
+          const alertMsg = `Il prezzo attuale ($${quote.currentPrice}) è sceso sotto lo Stop Loss di sicurezza ($${pos.stopLossPriceUSD}). Conviene chiudere la posizione per bloccare le perdite.`;
           portfolioAlerts.push({ ticker: pos.ticker, message: alertMsg });
           await sendUrgentPortfolioAlertTelegram({
             ticker: pos.ticker,
@@ -63,18 +82,18 @@ export async function executeScheduledScan(label = 'PROGRAMMATO'): Promise<{
             reason: alertMsg,
           });
         } else if (pos.takeProfitPriceUSD && quote.currentPrice >= pos.takeProfitPriceUSD) {
-          const alertMsg = `Prezzo attuale ($${quote.currentPrice}) ha raggiunto il Take Profit ($${pos.takeProfitPriceUSD})!`;
+          const alertMsg = `Il prezzo attuale ($${quote.currentPrice}) ha raggiunto il Take Profit prefissato ($${pos.takeProfitPriceUSD}). Ottimo momento per incassare i guadagni.`;
           portfolioAlerts.push({ ticker: pos.ticker, message: alertMsg });
           await sendUrgentPortfolioAlertTelegram({
             ticker: pos.ticker,
-            verdict: 'PRENDI PROFITTO (TARGET RAGGIUNTO)',
+            verdict: 'PRENDI PROFITTO (OBIETTIVO RAGGIUNTO)',
             currentPrice: quote.currentPrice,
             takeProfitPrice: pos.takeProfitPriceUSD,
             reason: alertMsg,
           });
         }
       } catch (e: any) {
-        console.warn(`[SCHEDULER] Failed checking portfolio quote for ${pos.ticker}:`, e?.message);
+        console.warn(`[SCHEDULER] Impossibile verificare quotazione per ${pos.ticker}:`, e?.message);
       }
     }
 
@@ -91,7 +110,7 @@ export async function executeScheduledScan(label = 'PROGRAMMATO'): Promise<{
         entryPriceUSD: d.revolutExecutionPlan?.idealEntryPriceUSD || 0,
       }));
 
-    // 6. Send comprehensive Telegram briefing
+    // 6. Send single comprehensive Telegram briefing (with anti-duplicate protection)
     await sendDailyBriefingTelegram({
       timeLabel: label,
       geopoliticalSentiment: geoBrief.marketSentiment,
@@ -101,7 +120,7 @@ export async function executeScheduledScan(label = 'PROGRAMMATO'): Promise<{
       portfolioAlerts,
     });
 
-    console.log(`[SCHEDULER] Scan (${label}) completed successfully.`);
+    console.log(`[SCHEDULER] Scansione (${label}) completata con successo.`);
 
     return {
       geopoliticalSentiment: geoBrief.marketSentiment,
@@ -109,8 +128,10 @@ export async function executeScheduledScan(label = 'PROGRAMMATO'): Promise<{
       alertsCount: portfolioAlerts.length,
     };
   } catch (err: any) {
-    console.error(`[SCHEDULER] Scan error:`, err?.message);
+    console.error(`[SCHEDULER] Errore scansione:`, err?.message);
     throw err;
+  } finally {
+    isScanRunning = false;
   }
 }
 
@@ -132,10 +153,10 @@ export async function executeHourlyPortfolioCheck(): Promise<void> {
       if (quote.changePercent <= -5.0) {
         await sendUrgentPortfolioAlertTelegram({
           ticker: pos.ticker,
-          verdict: 'ATTENZIONE: CROLLO INTRA-DAY',
+          verdict: 'ATTENZIONE: FORTE CALO ODIERNO',
           currentPrice: quote.currentPrice,
           stopLossPrice: pos.stopLossPriceUSD || undefined,
-          reason: `Il titolo sta perdendo il ${quote.changePercent.toFixed(2)}% nella sessione odierna. Verifica i livelli di supporto.`,
+          reason: `Il titolo sta perdendo il ${quote.changePercent.toFixed(2)}% oggi. Controlla il prezzo e i livelli di sicurezza sull'app Revolut.`,
         });
       }
 
@@ -146,7 +167,7 @@ export async function executeHourlyPortfolioCheck(): Promise<void> {
           verdict: 'VENDI ORA (STOP LOSS COLPITO)',
           currentPrice: quote.currentPrice,
           stopLossPrice: pos.stopLossPriceUSD,
-          reason: `Prezzo ($${quote.currentPrice}) sceso sotto lo Stop Loss ($${pos.stopLossPriceUSD}).`,
+          reason: `Il prezzo ($${quote.currentPrice}) è sceso sotto lo Stop Loss ($${pos.stopLossPriceUSD}).`,
         });
       }
 
@@ -154,10 +175,10 @@ export async function executeHourlyPortfolioCheck(): Promise<void> {
       if (pos.takeProfitPriceUSD && quote.currentPrice >= pos.takeProfitPriceUSD) {
         await sendUrgentPortfolioAlertTelegram({
           ticker: pos.ticker,
-          verdict: 'PRENDI PROFITTO (TARGET RAGGIUNTO)',
+          verdict: 'PRENDI PROFITTO (OBIETTIVO RAGGIUNTO)',
           currentPrice: quote.currentPrice,
           takeProfitPrice: pos.takeProfitPriceUSD,
-          reason: `Prezzo ($${quote.currentPrice}) ha raggiunto il Take Profit prefissato ($${pos.takeProfitPriceUSD}).`,
+          reason: `Il prezzo ($${quote.currentPrice}) ha raggiunto il Take Profit prefissato ($${pos.takeProfitPriceUSD}).`,
         });
       }
     } catch (err: any) {
@@ -213,7 +234,6 @@ export async function initScheduler(): Promise<void> {
   scheduledTasks.push(afternoonTask);
 
   // 3. Hourly quick safety check (Monday - Friday, 09:00 to 22:00 Rome time)
-  // At minute 15 of every hour between 9 and 22
   const hourlyCron = '15 9-22 * * 1-5';
   const hourlyTask = cron.schedule(
     hourlyCron,
@@ -226,7 +246,7 @@ export async function initScheduler(): Promise<void> {
 
   isSchedulerRunning = true;
   console.log(
-    `[SCHEDULER] Initialized active cron jobs (Morning: ${settings.morningScanTime}, Afternoon: ${settings.afternoonScanTime}, Hourly Monitor active).`
+    `[SCHEDULER] Inizializzati i cron job (Mattina: ${settings.morningScanTime}, Pomeriggio: ${settings.afternoonScanTime}, Monitor orario attivo).`
   );
 }
 

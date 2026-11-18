@@ -129,19 +129,19 @@ export function RevolutCopyCard({
                 {verdict}
               </span>
             </div>
-            <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-2">
-              <span>Ordine: <b className="text-slate-200">{plan.orderType || 'Ordine Limite'}</b></span>
+            <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex flex-wrap items-center gap-2">
+              <span>Tipo Ordine: <b className="text-slate-200">{plan.orderType || 'Ordine Limite'}</b> <span className="text-[10px] text-slate-500">(compra solo a questo prezzo o meno)</span></span>
               {worthUsingSlot !== undefined && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${worthUsingSlot ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>
-                  {worthUsingSlot ? '⭐️ Slot Revolut Consigliato' : '⚠️ No Slot (Trade Piccolo)'}
+                  {worthUsingSlot ? '⭐️ Consigliato usare trade gratuito' : '⚠️ Trade piccolo: valuta commissione'}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Conviction Score Pill */}
+          {/* Conviction / Affidabilità Score Pill */}
           <div className="text-right">
-            <div className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">Conviction</div>
+            <div className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">Affidabilità Consiglio</div>
             <div
               className={`num-mono font-black text-lg ${
                 convictionScore >= 80
@@ -168,13 +168,14 @@ export function RevolutCopyCard({
           <button
             onClick={() => copyToClipboard(plan.idealEntryPriceUSD, 'price')}
             className="flex items-center justify-between p-2.5 rounded-lg bg-[#141d30] hover:bg-[#1a263f] border border-[#253552] text-left transition-colors group/btn"
-            title="Tocca per copiare il prezzo da digitare sull'app Revolut"
+            title="Prezzo a cui impostare l'acquisto su Revolut"
           >
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Prezzo Ingresso</div>
+              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Prezzo a cui Comprare</div>
               <div className="num-mono font-bold text-sm text-cyan-300">
                 ${plan.idealEntryPriceUSD}
               </div>
+              <div className="text-[9px] text-slate-500 font-mono mt-0.5">Tocca per copiare</div>
             </div>
             <div className="p-1 rounded bg-slate-800/80 text-slate-400 group-hover/btn:text-cyan-300">
               {copiedField === 'price' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -185,13 +186,14 @@ export function RevolutCopyCard({
           <button
             onClick={() => copyToClipboard(plan.fractionalSharesToBuy, 'shares')}
             className="flex items-center justify-between p-2.5 rounded-lg bg-[#141d30] hover:bg-[#1a263f] border border-[#253552] text-left transition-colors group/btn"
-            title="Tocca per copiare la quantità di azioni su Revolut"
+            title="Numero esatto di quote da inserire su Revolut"
           >
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Azioni Frazionarie</div>
+              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Azioni da Comprare</div>
               <div className="num-mono font-bold text-sm text-amber-300">
                 {plan.fractionalSharesToBuy}
               </div>
+              <div className="text-[9px] text-slate-500 font-mono mt-0.5">Quote da digitare</div>
             </div>
             <div className="p-1 rounded bg-slate-800/80 text-slate-400 group-hover/btn:text-amber-300">
               {copiedField === 'shares' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -202,13 +204,14 @@ export function RevolutCopyCard({
           <button
             onClick={() => copyToClipboard(plan.recommendedInvestmentEUR, 'eur')}
             className="flex items-center justify-between p-2.5 rounded-lg bg-[#141d30] hover:bg-[#1a263f] border border-[#253552] text-left transition-colors group/btn"
-            title="Tocca per copiare la cifra in Euro da investire su Revolut"
+            title="Importo totale in Euro calcolato per non rischiare troppo"
           >
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Investimento EUR</div>
+              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">Soldi da Investire</div>
               <div className="num-mono font-bold text-sm text-emerald-300">
                 €{plan.recommendedInvestmentEUR}
               </div>
+              <div className="text-[9px] text-slate-500 font-mono mt-0.5">Totale calcolato</div>
             </div>
             <div className="p-1 rounded bg-slate-800/80 text-slate-400 group-hover/btn:text-emerald-300">
               {copiedField === 'eur' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -220,20 +223,24 @@ export function RevolutCopyCard({
         {/* Key Operational Targets Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs py-2 px-3 rounded-lg bg-[#0a0f1a] border border-[#1b2538] mb-3">
           <div>
-            <span className="text-[10px] text-slate-400 block font-mono">Pareggio (BE):</span>
+            <span className="text-[10px] text-slate-400 block font-mono">Prezzo Pareggio (BE):</span>
             <span className="num-mono font-semibold text-slate-200">${plan.breakEvenPriceUSD}</span>
+            <span className="text-[9px] text-slate-500 block">Per coprire commissioni</span>
           </div>
           <div>
-            <span className="text-[10px] text-rose-400 block font-mono">Stop Loss:</span>
+            <span className="text-[10px] text-rose-400 block font-mono">Stop Loss (Sicurezza):</span>
             <span className="num-mono font-semibold text-rose-300">${plan.stopLossPriceUSD}</span>
+            <span className="text-[9px] text-rose-400/80 block">Vendi qui per bloccare perdite</span>
           </div>
           <div>
-            <span className="text-[10px] text-emerald-400 block font-mono">Target 1 (TP1):</span>
+            <span className="text-[10px] text-emerald-400 block font-mono">Obiettivo Guadagno (TP1):</span>
             <span className="num-mono font-semibold text-emerald-300">${plan.takeProfit1USD}</span>
+            <span className="text-[9px] text-emerald-400/80 block">Vendi qui per incassare</span>
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 block font-mono">Rischio/Rendimento:</span>
+            <span className="text-[10px] text-slate-400 block font-mono">Guadagno / Rischio:</span>
             <span className="num-mono font-bold text-amber-400">{plan.riskRewardRatio}</span>
+            <span className="text-[9px] text-slate-500 block">Proporzione resa/rischio</span>
           </div>
         </div>
 

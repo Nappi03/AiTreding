@@ -253,10 +253,11 @@ export function PortfolioSection({
                   {/* Middle: Stop Loss & TP Status */}
                   <div className="flex items-center gap-4 text-xs font-mono">
                     <div>
-                      <span className="text-[10px] text-rose-400 block">Stop Loss</span>
+                      <span className="text-[10px] text-rose-400 block font-semibold">Stop Loss</span>
                       <span className="text-slate-200 font-semibold">
                         {pos.stopLossPriceUSD ? `$${pos.stopLossPriceUSD}` : 'Non imp.'}
                       </span>
+                      <span className="text-[9px] text-slate-500 block">Prezzo sicurezza</span>
                       {pos.stopLossDistancePercent !== null && pos.stopLossDistancePercent !== undefined && (
                         <span className="text-[10px] text-slate-400 block">
                           ({pos.stopLossDistancePercent > 0 ? '+' : ''}{pos.stopLossDistancePercent}%)
@@ -265,10 +266,11 @@ export function PortfolioSection({
                     </div>
 
                     <div>
-                      <span className="text-[10px] text-emerald-400 block">Take Profit</span>
+                      <span className="text-[10px] text-emerald-400 block font-semibold">Take Profit</span>
                       <span className="text-slate-200 font-semibold">
                         {pos.takeProfitPriceUSD ? `$${pos.takeProfitPriceUSD}` : 'Non imp.'}
                       </span>
+                      <span className="text-[9px] text-slate-500 block">Obiettivo guadagno</span>
                       {pos.takeProfitDistancePercent !== null && pos.takeProfitDistancePercent !== undefined && (
                         <span className="text-[10px] text-slate-400 block">
                           ({pos.takeProfitDistancePercent > 0 ? '+' : ''}{pos.takeProfitDistancePercent}%)
@@ -389,7 +391,7 @@ export function PortfolioSection({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-rose-400 font-mono mb-1">Stop Loss ($USD facoltativo)</label>
+                  <label className="block text-rose-400 font-mono mb-1">Stop Loss ($USD)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -398,9 +400,10 @@ export function PortfolioSection({
                     className="w-full bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:border-rose-500 outline-none"
                     placeholder="110.00"
                   />
+                  <span className="text-[10px] text-slate-500 mt-1 block">Prezzo sicurezza: vendi qui se scende per bloccare le perdite</span>
                 </div>
                 <div>
-                  <label className="block text-emerald-400 font-mono mb-1">Take Profit ($USD facoltativo)</label>
+                  <label className="block text-emerald-400 font-mono mb-1">Take Profit ($USD)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -409,6 +412,7 @@ export function PortfolioSection({
                     className="w-full bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:border-emerald-500 outline-none"
                     placeholder="150.00"
                   />
+                  <span className="text-[10px] text-slate-500 mt-1 block">Obiettivo: vendi qui per incassare il guadagno</span>
                 </div>
               </div>
 

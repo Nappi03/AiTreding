@@ -55,7 +55,7 @@ export function DeepAnalysisModal({
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Analisi quantitativa istituzionale & Scheda operativa per Revolut
+                Spiegazione chiara dell'opportunità & Numeri esatti da copiare su Revolut
               </p>
             </div>
           </div>
@@ -79,10 +79,10 @@ export function DeepAnalysisModal({
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
-                  Elaborazione Deep Hedge-Fund in corso...
+                  Analisi approfondita con l'AI in corso...
                 </h3>
                 <p className="text-xs text-slate-400 max-w-sm">
-                  Gemini 2.5 Pro sta attivando il deep thinking (budget 32.768), consultando Google Search per breaking news dell'ultima ora e calcolando commissioni e stop loss su Revolut.
+                  L'Intelligenza Artificiale sta leggendo le ultime notizie in tempo reale, verificando grafici e calcolando Stop Loss e quote sicure per il tuo conto Revolut.
                 </p>
               </div>
             </div>
@@ -99,11 +99,11 @@ export function DeepAnalysisModal({
               {/* Navigation Tabs */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-800 text-xs font-mono">
                 {[
-                  { id: 'plan', label: 'Scheda Operativa Revolut', icon: TrendingUp },
-                  { id: 'thesis', label: 'Tesi & Verdetto', icon: ShieldCheck },
-                  { id: 'geopolitics', label: 'Macro & Geopolitica', icon: Globe2 },
-                  { id: 'catalysts', label: 'Catalizzatori Societari', icon: Cpu },
-                  { id: 'technical', label: 'Confluenza Tecnica', icon: BarChart2 },
+                  { id: 'plan', label: 'Cosa Fare su Revolut', icon: TrendingUp },
+                  { id: 'thesis', label: 'Spiegazione Semplice', icon: ShieldCheck },
+                  { id: 'geopolitics', label: 'Notizie Mondo & Impatto', icon: Globe2 },
+                  { id: 'catalysts', label: 'Novità Azienda', icon: Cpu },
+                  { id: 'technical', label: 'Grafici & Prezzi', icon: BarChart2 },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -160,8 +160,8 @@ export function DeepAnalysisModal({
               {activeTab === 'thesis' && (
                 <div className="bg-[#0e1422] border border-[#1f2d47] rounded-xl p-5 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-wider font-mono text-slate-400">Tesi Strategica</span>
-                    <span className="text-sm font-bold text-amber-400 font-mono">Conviction: {analysis.convictionScore}/100</span>
+                    <span className="text-xs uppercase tracking-wider font-mono text-slate-400">Spiegazione della Scelta</span>
+                    <span className="text-sm font-bold text-amber-400 font-mono">Affidabilità Consiglio: {analysis.convictionScore}/100</span>
                   </div>
                   <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-line">
                     {analysis.thesisSummary}

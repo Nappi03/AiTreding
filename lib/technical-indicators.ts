@@ -1,6 +1,9 @@
 import { SMA, EMA, RSI, MACD, BollingerBands, ATR } from 'technicalindicators';
 import { getHistoricalCandles, HistoricalCandle } from './market-data';
 
+// Cache in-memory per indicatori tecnici (TTL 5 minuti per evitare centinaia di chiamate Yahoo)
+const indicatorsCache = new Map<string, { result: { candles: HistoricalCandle[]; indicators: CalculatedIndicators }; timestamp: number }>();
+
 export interface CalculatedIndicators {
   currentPrice: number;
   sma20: number | null;
@@ -32,6 +35,16 @@ export async function calculateStockIndicators(
   ticker: string,
   candles?: HistoricalCandle[]
 ): Promise<{ candles: HistoricalCandle[]; indicators: CalculatedIndicators }> {
+  const symbol = ticker.toUpperCase().trim();
+  const now = Date.now();
+
+  if (!candles) {
+    const cached = indicatorsCache.get(symbol);
+    if (cached && now - cached.timestamp < 5 * 60 * 1000) {
+      return cached.result;
+    }
+  }
+
   const history = candles || (await getHistoricalCandles(ticker, 250));
 
   if (history.length < 30) {
@@ -201,5 +214,8 @@ export async function calculateStockIndicators(
     technicalSignals,
   };
 
-  return { candles: history, indicators };
+  const finalResult = { candles: history, indicators };
+  indicatorsCache.set(symbol, { result: finalResult, timestamp: Date.now() });
+
+  return finalResult;
 }

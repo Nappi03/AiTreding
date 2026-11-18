@@ -11,37 +11,41 @@ export async function GET() {
 
     const enriched = await Promise.all(
       watchlist.map(async (item) => {
+        let quote: any = null;
         try {
-          const quote = await getStockQuote(item.ticker);
-          const { indicators } = await calculateStockIndicators(item.ticker);
-
-          return {
-            ...item,
-            currentPrice: quote.currentPrice,
-            change: quote.change,
-            changePercent: quote.changePercent,
-            dayHigh: quote.dayHigh,
-            dayLow: quote.dayLow,
-            volume: quote.volume,
-            rsi14: indicators.rsi14,
-            trend: indicators.trend,
-            sma20: indicators.sma20,
-            sma50: indicators.sma50,
-            ema200: indicators.ema200,
-            atr14: indicators.atr14,
-            supportLevelUSD: indicators.supportLevelUSD,
-            resistanceLevelUSD: indicators.resistanceLevelUSD,
-            suggestedStopLossUSD: indicators.suggestedStopLossUSD,
-            suggestedTakeProfit1USD: indicators.suggestedTakeProfit1USD,
-            signals: indicators.technicalSignals,
-          };
-        } catch (err: any) {
-          return {
-            ...item,
-            currentPrice: null,
-            error: err.message,
-          };
+          quote = await getStockQuote(item.ticker);
+        } catch (quoteErr: any) {
+          console.warn(`Impossibile ottenere quote per ${item.ticker}:`, quoteErr?.message);
         }
+
+        let indicators: any = null;
+        try {
+          const res = await calculateStockIndicators(item.ticker);
+          indicators = res.indicators;
+        } catch (indErr: any) {
+          console.warn(`Impossibile calcolare indicatori per ${item.ticker}:`, indErr?.message);
+        }
+
+        return {
+          ...item,
+          currentPrice: quote?.currentPrice ?? null,
+          change: quote?.change ?? 0,
+          changePercent: quote?.changePercent ?? 0,
+          dayHigh: quote?.dayHigh ?? quote?.currentPrice ?? null,
+          dayLow: quote?.dayLow ?? quote?.currentPrice ?? null,
+          volume: quote?.volume ?? 0,
+          rsi14: indicators?.rsi14 ?? null,
+          trend: indicators?.trend ?? 'NEUTRAL',
+          sma20: indicators?.sma20 ?? null,
+          sma50: indicators?.sma50 ?? null,
+          ema200: indicators?.ema200 ?? null,
+          atr14: indicators?.atr14 ?? 0,
+          supportLevelUSD: indicators?.supportLevelUSD ?? null,
+          resistanceLevelUSD: indicators?.resistanceLevelUSD ?? null,
+          suggestedStopLossUSD: indicators?.suggestedStopLossUSD ?? null,
+          suggestedTakeProfit1USD: indicators?.suggestedTakeProfit1USD ?? null,
+          signals: indicators?.technicalSignals ?? [],
+        };
       })
     );
 

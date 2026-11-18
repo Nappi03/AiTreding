@@ -253,8 +253,8 @@ export default function Dashboard() {
           {[
             { id: 'radar', label: '🔥 Radar & Opportunità', icon: Zap },
             { id: 'portfolio', label: '💼 Portafoglio Revolut', icon: Briefcase },
-            { id: 'watchlist', label: '📋 Watchlist & Screening', icon: ListFilter },
-            { id: 'geopolitics', label: '🌍 Macro & Geopolitica', icon: Globe2 },
+            { id: 'watchlist', label: '📋 Titoli Osservati & Analisi', icon: ListFilter },
+            { id: 'geopolitics', label: '🌍 Notizie Mondo & Economia', icon: Globe2 },
             { id: 'settings', label: '⚙️ Impostazioni', icon: SlidersHorizontal },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -325,9 +325,9 @@ export default function Dashboard() {
         {[
           { id: 'radar', label: 'Radar', icon: Zap },
           { id: 'portfolio', label: 'Portafoglio', icon: Briefcase },
-          { id: 'watchlist', label: 'Watchlist', icon: ListFilter },
-          { id: 'geopolitics', label: 'Macro', icon: Globe2 },
-          { id: 'settings', label: 'Setup', icon: SlidersHorizontal },
+          { id: 'watchlist', label: 'Osservati', icon: ListFilter },
+          { id: 'geopolitics', label: 'Mondo', icon: Globe2 },
+          { id: 'settings', label: 'Opzioni', icon: SlidersHorizontal },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

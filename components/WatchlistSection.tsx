@@ -95,14 +95,14 @@ export function WatchlistSection({
           <div className="flex items-center gap-2">
             <ListFilter className="w-4 h-4 text-amber-400" />
             <h2 className="text-base font-black text-white uppercase font-mono tracking-wider">
-              Watchlist Istituzionale & Screening
+              Titoli Osservati & Analisi
             </h2>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
               {watchlist.length} Titoli
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Monitoraggio quote live, calcolo indicatori (RSI, Medie, Volumi) e scoring di priorità AI
+            Prezzi live sempre aggiornati, indicatori spiegati in modo semplice e controllo rapido con l'AI
           </p>
         </div>
 
@@ -128,10 +128,10 @@ export function WatchlistSection({
             onClick={onTriggerTriage}
             disabled={isTriaging}
             className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
-            title="Avvia screening con Gemini 2.5 Flash per calcolare il Priority Score"
+            title="Avvia controllo rapido con l'AI su tutti i titoli osservati"
           >
             <Activity className={`w-3.5 h-3.5 ${isTriaging ? 'animate-spin' : ''}`} />
-            <span>Fast Triage</span>
+            <span>Controllo Rapido</span>
           </button>
         </form>
       </div>
@@ -181,7 +181,7 @@ export function WatchlistSection({
                 {/* Middle: Math Indicators & Live Quote */}
                 <div className="flex items-center gap-4 text-xs font-mono">
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Prezzo Live</span>
+                    <span className="text-[10px] text-slate-400 block font-semibold">Prezzo Live</span>
                     <span className="text-sm font-bold text-white">${item.currentPrice ?? '--'}</span>
                     <span className={`text-[10px] block ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {isUp ? '+' : ''}{changePct.toFixed(2)}%
@@ -189,7 +189,7 @@ export function WatchlistSection({
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-slate-400 block">RSI (14)</span>
+                    <span className="text-[10px] text-slate-400 block font-semibold">RSI (14)</span>
                     <span
                       className={`text-xs font-bold ${
                         (item.rsi14 ?? 50) < 32
@@ -198,21 +198,34 @@ export function WatchlistSection({
                           ? 'text-rose-400'
                           : 'text-slate-300'
                       }`}
+                      title="Indica se un titolo è stato comprato troppo (sopra 70) o svenduto (sotto 30)"
                     >
                       {item.rsi14 ?? 'N/A'}
+                    </span>
+                    <span className="text-[9px] text-slate-500 block max-w-[90px] leading-tight">
+                      {(item.rsi14 ?? 50) < 32 ? 'Svenduto (rimbalzo?)' : (item.rsi14 ?? 50) > 70 ? 'Comprato troppo' : 'Neutrale'}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Trend</span>
+                    <span className="text-[10px] text-slate-400 block font-semibold">Trend</span>
                     <span className="text-xs font-semibold text-emerald-400">
-                      {item.trend || 'NEUTRAL'}
+                      {item.trend === 'STRONG_BULLISH'
+                        ? 'Salita Forte 🚀'
+                        : item.trend === 'BULLISH'
+                        ? 'In Salita 📈'
+                        : item.trend === 'BEARISH'
+                        ? 'In Discesa 📉'
+                        : item.trend === 'STRONG_BEARISH'
+                        ? 'Discesa Forte ⚠️'
+                        : 'Laterale / Stabile ⚖️'}
                     </span>
+                    <span className="text-[9px] text-slate-500 block">Direzione prezzo</span>
                   </div>
 
                   {/* Priority Score from Flash Triage */}
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block">Priority Score</span>
+                    <span className="text-[10px] text-slate-400 block font-semibold">Priorità AI</span>
                     <span
                       className={`num-mono font-black text-sm ${
                         score >= 80 ? 'text-emerald-400' : score >= 60 ? 'text-amber-400' : 'text-slate-400'
@@ -220,6 +233,7 @@ export function WatchlistSection({
                     >
                       {score > 0 ? `${score}/100` : '--'}
                     </span>
+                    <span className="text-[9px] text-slate-500 block">Occasione</span>
                   </div>
                 </div>
 
@@ -230,7 +244,7 @@ export function WatchlistSection({
                     className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Deep Analysis (Pro)</span>
+                    <span>Analisi Completa</span>
                   </button>
 
                   <button
