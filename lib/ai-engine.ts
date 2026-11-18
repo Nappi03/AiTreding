@@ -26,6 +26,60 @@ export function createGeminiClient(apiKey: string): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
 }
 
+/**
+ * Robust helper that tries the preferred model (gemini-2.5-pro with thinking & search)
+ * and falls back gracefully to gemini-3.8-flash if search quota (429) or model (404) is triggered.
+ */
+async function generateContentWithFallback(
+  ai: GoogleGenAI,
+  options: {
+    preferredModel?: string;
+    fallbackModel?: string;
+    prompt: string;
+    useSearch?: boolean;
+    thinkingBudget?: number;
+  }
+): Promise<string> {
+  const {
+    preferredModel = 'gemini-2.5-pro',
+    fallbackModel = 'gemini-3.8-flash',
+    prompt,
+    useSearch = false,
+    thinkingBudget = 0,
+  } = options;
+
+  const modelsToTry = [preferredModel, fallbackModel];
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    // Attempt 1: with search and thinking config
+    try {
+      const config: any = { responseMimeType: 'application/json' };
+      if (useSearch) config.tools = [{ googleSearch: {} }];
+      if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
+
+      const res = await ai.models.generateContent({ model, contents: prompt, config });
+      if (res.text) return res.text;
+    } catch (err: any) {
+      lastError = err;
+      // Attempt 2: retry same model without search tool (fixes 429 quota on search)
+      if (useSearch) {
+        try {
+          const config: any = { responseMimeType: 'application/json' };
+          if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
+
+          const res = await ai.models.generateContent({ model, contents: prompt, config });
+          if (res.text) return res.text;
+        } catch (err2: any) {
+          lastError = err2;
+        }
+      }
+    }
+  }
+
+  throw lastError || new Error('Generazione AI non riuscita');
+}
+
 // ==============================================================================
 // LIVELO 1: Global Geopolitical Daily Brief (gemini-2.5-pro + googleSearch)
 // ==============================================================================
@@ -99,16 +153,12 @@ Restituisci la risposta ESCLUSIVAMENTE in formato JSON con la seguente struttura
 }
   `.trim();
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-pro',
-    contents: prompt,
-    config: {
-      tools: [{ googleSearch: {} }],
-      responseMimeType: 'application/json',
-    },
+  const text = await generateContentWithFallback(ai, {
+    preferredModel: 'gemini-2.5-pro',
+    fallbackModel: 'gemini-3.8-flash',
+    prompt,
+    useSearch: true,
   });
-
-  const text = response.text || '{}';
   let parsed: any;
   try {
     parsed = JSON.parse(text);
@@ -245,19 +295,18 @@ Restituisci un JSON con un array di oggetti:
 ]
   `.trim();
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-    },
+  const rawFlashText = await generateContentWithFallback(ai, {
+    preferredModel: 'gemini-3.8-flash',
+    fallbackModel: 'gemini-2.5-flash',
+    prompt,
+    useSearch: false,
   });
 
   let parsed: Array<{ ticker: string; priorityScore: number; catalystSummary: string }> = [];
   try {
-    parsed = JSON.parse(response.text || '[]');
+    parsed = JSON.parse(rawFlashText);
   } catch (err) {
-    const cleaned = (response.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
+    const cleaned = rawFlashText.replace(/```json/g, '').replace(/```/g, '').trim();
     parsed = JSON.parse(cleaned);
   }
 
@@ -446,19 +495,14 @@ Esegui un ragionamento approfondito (deep hedge fund thinking) e restituisci la 
 }
   `.trim();
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-pro',
-    contents: prompt,
-    config: {
-      thinkingConfig: {
-        thinkingBudget: 32768,
-      },
-      tools: [{ googleSearch: {} }],
-      responseMimeType: 'application/json',
-    },
+  const rawText = await generateContentWithFallback(ai, {
+    preferredModel: 'gemini-2.5-pro',
+    fallbackModel: 'gemini-3.8-flash',
+    prompt,
+    useSearch: true,
+    thinkingBudget: 32768,
   });
 
-  const rawText = response.text || '{}';
   let parsed: any;
   try {
     parsed = JSON.parse(rawText);

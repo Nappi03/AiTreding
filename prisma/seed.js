@@ -7,7 +7,11 @@ async function main() {
   // Default Account Settings
   await prisma.accountSettings.upsert({
     where: { id: 'default' },
-    update: {},
+    update: {
+      geminiApiKey: process.env.GEMINI_API_KEY || undefined,
+      telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || undefined,
+      telegramChatId: process.env.TELEGRAM_CHAT_ID || undefined,
+    },
     create: {
       id: 'default',
       availableLiquidityEur: 10000.0,
